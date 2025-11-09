@@ -38,9 +38,10 @@ class WordListItem extends StatelessWidget {
         chineseColorValue = isCenter ? 0xFFFFFFFF : 0xFFF44336; // 白色/红色
         break;
       default:
-        backgroundColorValue = isCenter ? 0xFF9E9E9E : 0x109E9E9E; // 灰色/浅灰色
-        textColorValue = isCenter ? 0xFFFFFFFF : 0xFF9E9E9E; // 白色/灰色
-        chineseColorValue = isCenter ? 0xFFFFFFFF : 0xFF9E9E9E; // 白色/灰色
+        backgroundColorValue = isCenter ? 0xFF9E9E9E : 0x00000000; // 灰色/透明
+        textColorValue = isCenter ? 0xFF9E9E9E : 0xFF9E9E9E; // 灰色/灰色
+        chineseColorValue = isCenter ? 0xFF9E9E9E : 0xFF9E9E9E; // 灰色/灰色
+        break;
     }
 
     return GestureDetector(
@@ -70,7 +71,7 @@ class WordListItem extends StatelessWidget {
                   color: Color(textColorValue),
                 ),
                 textAlign: TextAlign.left,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
