@@ -9,13 +9,13 @@ class PickerScrollView extends StatefulWidget {
   final Function(int centerIndex)? onCenterIndexChanged;
   final ScrollController? controller;
 
-  const PickerScrollView({
-    super.key,
-    required this.itemCount,
-    required this.itemBuilder,
-    this.itemExtent = 100.0,
-    this.onCenterIndexChanged,
-    this.controller,
+  const PickerScrollView({
+    super.key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.itemExtent = 60.0, // 降低默认项高度
+    this.onCenterIndexChanged,
+    this.controller,
   });
 
   @override

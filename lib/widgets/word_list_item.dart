@@ -44,58 +44,59 @@ class WordListItem extends StatelessWidget {
         break;
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: 20,
-        ),
-        padding: EdgeInsets.symmetric(
-          vertical: isCenter ? 20 : 12,
-          horizontal: isCenter ? 20 : 16,
-        ),
-        decoration: BoxDecoration(
-          color: Color(backgroundColorValue),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            // 左侧英文单词
-            Expanded(
-              flex: 2,
-              child: Text(
-                word.english,
-                style: TextStyle(
-                  fontSize: isCenter ? 22 : 16,
-                  fontWeight: isCenter ? FontWeight.bold : FontWeight.w600,
-                  color: Color(textColorValue),
-                ),
-                textAlign: TextAlign.left,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            // 右侧中文释义
-            Expanded(
-              flex: 3,
-              child: Text(
-                word.chinese,
-                style: TextStyle(
-                  fontSize: isCenter ? 18 : 14,
-                  fontWeight: isCenter ? FontWeight.w500 : FontWeight.normal,
-                  color: Color(chineseColorValue),
-                ),
-                textAlign: TextAlign.left,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 4, // 添加垂直间隙
+        ),
+        padding: EdgeInsets.symmetric(
+          vertical: isCenter ? 12 : 8, // 降低垂直内边距
+          horizontal: isCenter ? 16 : 12, // 降低水平内边距
+        ),
+        decoration: BoxDecoration(
+          color: Color(backgroundColorValue),
+          borderRadius: BorderRadius.circular(12), // 减小圆角
+        ),
+        child: Row(
+          children: [
+            // 左侧英文单词
+            Expanded(
+              flex: 2,
+              child: Text(
+                word.english,
+                style: TextStyle(
+                  fontSize: isCenter ? 18 : 14, // 降低字体大小
+                  fontWeight: isCenter ? FontWeight.bold : FontWeight.w600,
+                  color: Color(textColorValue),
+                ),
+                textAlign: TextAlign.left,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            const SizedBox(width: 12), // 减小单词和释义之间的间距
+
+            // 右侧中文释义
+            Expanded(
+              flex: 3,
+              child: Text(
+                word.chinese,
+                style: TextStyle(
+                  fontSize: isCenter ? 16 : 12, // 降低字体大小
+                  fontWeight: isCenter ? FontWeight.w500 : FontWeight.normal,
+                  color: Color(chineseColorValue),
+                ),
+                textAlign: TextAlign.left,
+                maxLines: 2, // 减少最大行数
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

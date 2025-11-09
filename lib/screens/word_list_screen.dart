@@ -149,18 +149,31 @@ class _WordListScreenState extends State<WordListScreen> {
             // 右侧单词选择器
             Expanded(
               child: PickerScrollView(
+
                 controller: _scrollController,
+
                 itemCount: provider.wordList.length,
-                itemExtent: 100.0,
+
+                itemExtent: 60.0, // 降低项高度
+
                 onCenterIndexChanged: (index) {
+
                   setState(() {
+
                     _centerWordIndex = index;
+
                   });
+
                 },
+
                 itemBuilder: (context, index, isCenter) {
+
                   final word = provider.wordList[index];
+
                   return _buildWordItem(word, isCenter);
+
                 },
+
               ),
             ),
           ],
@@ -186,9 +199,13 @@ class _WordListScreenState extends State<WordListScreen> {
         final index = provider.wordList.indexOf(word);
         if (index != -1 && _scrollController.hasClients) {
           _scrollController.animateTo(
-            index * 100.0,
+
+            index * 60.0, // 更新为新的项高度
+
             duration: const Duration(milliseconds: 300),
+
             curve: Curves.easeInOut,
+
           );
         }
       },
@@ -208,18 +225,25 @@ class _WordListScreenState extends State<WordListScreen> {
     if (letter == 'TOP') {
       // 滚动到顶部
       if (_scrollController.hasClients) {
+
         _scrollController.animateTo(
+
           0,
+
           duration: const Duration(milliseconds: 400),
+
           curve: Curves.easeInOut,
+
         );
+
       }
     } else if (letter == 'MIDDLE') {
       // 滚动到中间
       final middleIndex = (provider.wordList.length / 2).round();
       if (_scrollController.hasClients) {
         // 修正：计算正确的居中位置
-        final targetOffset = middleIndex * 100.0 - (viewportHeight - 100.0) / 2;
+
+        final targetOffset = middleIndex * 60.0 - (viewportHeight - 60.0) / 2;
         _scrollController.animateTo(
           targetOffset,
           duration: const Duration(milliseconds: 400),
@@ -232,7 +256,8 @@ class _WordListScreenState extends State<WordListScreen> {
       final targetIndex = indices[letter];
       if (targetIndex != null && _scrollController.hasClients) {
         // 修正：计算正确的居中位置
-        final targetOffset = targetIndex * 100.0 - (viewportHeight - 100.0) / 2;
+
+        final targetOffset = targetIndex * 60.0 - (viewportHeight - 60.0) / 2;
         _scrollController.animateTo(
           targetOffset,
           duration: const Duration(milliseconds: 400),

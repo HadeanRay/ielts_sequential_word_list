@@ -48,14 +48,14 @@ class WordListProvider with ChangeNotifier {
     }
   }
 
-  // 获取当前中心位置的单词索引
-  int getCenterWordIndex(double scrollOffset, double viewportHeight, double itemHeight) {
-    if (_wordList.isEmpty) return 0;
-    
-    final centerOffset = scrollOffset + viewportHeight / 2;
-    final centerIndex = (centerOffset / itemHeight).round();
-    
-    return centerIndex.clamp(0, _wordList.length - 1);
+  // 获取当前中心位置的单词索引
+  int getCenterWordIndex(double scrollOffset, double viewportHeight, double itemHeight) {
+    if (_wordList.isEmpty) return 0;
+    
+    final centerOffset = scrollOffset + viewportHeight / 2;
+    final centerIndex = (centerOffset / itemHeight).round();
+    
+    return centerIndex.clamp(0, _wordList.length - 1);
   }
 
   // 设置滚动位置
@@ -65,13 +65,13 @@ class WordListProvider with ChangeNotifier {
     notifyListeners();
   }
   
-  // 更新滚动位置
-  void updateScrollPosition(double offset, double itemHeight) {
-    final newPosition = (offset / itemHeight).round();
-    if (newPosition != _scrollPosition) {
-      _scrollPosition = newPosition.clamp(0, _wordList.length - 1);
-      _saveScrollPosition();
-    }
+  // 更新滚动位置
+  void updateScrollPosition(double offset, double itemHeight) {
+    final newPosition = (offset / itemHeight).round();
+    if (newPosition != _scrollPosition) {
+      _scrollPosition = newPosition.clamp(0, _wordList.length - 1);
+      _saveScrollPosition();
+    }
   }
 
   // 获取首字母分组的起始索引
