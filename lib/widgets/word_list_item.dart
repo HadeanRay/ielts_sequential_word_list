@@ -56,12 +56,6 @@ class WordListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: Color(backgroundColorValue),
           borderRadius: BorderRadius.circular(16),
-          border: isCenter
-              ? Border.all(
-                  color: Colors.blue.withOpacity(0.7),
-                  width: 2,
-                )
-              : null,
         ),
         child: Row(
           children: [

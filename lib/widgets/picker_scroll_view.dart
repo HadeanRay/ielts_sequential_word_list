@@ -154,28 +154,6 @@ class _PickerScrollViewState extends State<PickerScrollView> {
                 );
               },
             ),
-            // 中心指示器装饰层 - 位于列表下方以不干扰交互
-            Positioned(
-              top: (_viewportHeight - widget.itemExtent) / 2,
-              left: 0,
-              right: 0,
-              height: widget.itemExtent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.blue.withOpacity(0.3),
-                      width: 1.0,
-                    ),
-                    bottom: BorderSide(
-                      color: Colors.blue.withOpacity(0.3),
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         );
       },
