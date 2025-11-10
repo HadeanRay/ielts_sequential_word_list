@@ -4,18 +4,20 @@ import 'package:flutter/material.dart';
 // 滚动选择器视图组件
 class PickerScrollView extends StatefulWidget {
   final int itemCount;
-  final Widget Function(BuildContext context, int index, bool isCenter) itemBuilder;
+  final Widget Function(BuildContext context, int index, bool isCenter, bool showChinese) itemBuilder;
   final double itemExtent;
   final Function(int centerIndex)? onCenterIndexChanged;
   final ScrollController? controller;
+  final int? forceShowChineseIndex;
 
-  const PickerScrollView({
-    super.key,
-    required this.itemCount,
-    required this.itemBuilder,
-    this.itemExtent = 60.0, // 降低默认项高度
-    this.onCenterIndexChanged,
-    this.controller,
+  const PickerScrollView({
+    super.key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.itemExtent = 60.0, // 降低默认项高度
+    this.onCenterIndexChanged,
+    this.controller,
+    this.forceShowChineseIndex,
   });
 
   @override
@@ -149,8 +151,13 @@ class _PickerScrollViewState extends State<PickerScrollView> {
               padding: EdgeInsets.zero, // 不使用padding
               itemBuilder: (context, index) {
                 final isCenter = index == _centerItemIndex;
+                // 判断是否应该显示中文释义
+                // 1. 当前索引大于等于中心索引时显示
+                // 2. 或者是强制显示的索引
+                final showChinese = index >= (_centerItemIndex ?? 0) || 
+                                  (widget.forceShowChineseIndex != null && index >= widget.forceShowChineseIndex!);
                 return Container(
-                  child: widget.itemBuilder(context, index, isCenter),
+                  child: widget.itemBuilder(context, index, isCenter, showChinese),
                 );
               },
             ),
