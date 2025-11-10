@@ -102,10 +102,6 @@ class WordListItem extends StatelessWidget {
 
                 textAlign: TextAlign.left,
 
-                maxLines: 1,
-
-                overflow: TextOverflow.ellipsis,
-
               ),
 
             ),
@@ -137,10 +133,6 @@ class WordListItem extends StatelessWidget {
                 ),
 
                 textAlign: TextAlign.left,
-
-                maxLines: 2, // 减少最大行数
-
-                overflow: TextOverflow.ellipsis,
 
               ),
 
