@@ -75,27 +75,28 @@ class _PickerScrollViewState extends State<PickerScrollView> {
     _updateCenterItemIndex();
   }
 
-  void _updateCenterItemIndex() {
-    if (_viewportHeight <= 0) return;
-    
-    // 计算屏幕中心位置对应的索引
-    // 屏幕中心位置 = 滚动偏移量 + 视口高度的一半 - 项高度的一半
-    // 这样可以确保中心检测区域正确
-    final centerOffset = _scrollController.offset + _viewportHeight / 2 - widget.itemExtent / 2;
-    // 中心项索引 = 中心位置 / 项高度
-    final centerIndex = (centerOffset / widget.itemExtent).round();
-    final clampedIndex = centerIndex.clamp(0, widget.itemCount - 1);
-
-    if (clampedIndex != _centerItemIndex) {
-      setState(() {
-        _centerItemIndex = clampedIndex;
-      });
-      
-      // 通知外部中心项已更改
-      if (widget.onCenterIndexChanged != null) {
-        widget.onCenterIndexChanged!(clampedIndex);
-      }
-    }
+  void _updateCenterItemIndex() {
+    if (_viewportHeight <= 0) return;
+    
+    // 计算屏幕中心位置对应的索引
+    // 屏幕中心位置 = 滚动偏移量 + 视口高度的一半 - 项高度的一半
+    // 这样可以确保中心检测区域正确
+    final centerOffset = _scrollController.offset + _viewportHeight / 2 - widget.itemExtent / 2;
+    // 中心项索引 = 中心位置 / 项高度
+    final centerIndex = (centerOffset / widget.itemExtent).round();
+    final clampedIndex = centerIndex.clamp(0, widget.itemCount - 1);
+
+    if (clampedIndex != _centerItemIndex) {
+      setState(() {
+        _centerItemIndex = clampedIndex;
+      });
+      
+      // 通知外部中心项已更改
+      if (widget.onCenterIndexChanged != null) {
+        print('中心单词索引更新为: $clampedIndex');
+        widget.onCenterIndexChanged!(clampedIndex);
+      }
+    }
   }
 
   void _snapToCenter() {

@@ -15,28 +15,58 @@ class WordListScreen extends StatefulWidget {
   State<WordListScreen> createState() => _WordListScreenState();
 }
 
-class _WordListScreenState extends State<WordListScreen> {
-  final ScrollController _scrollController = ScrollController();
-  int? _centerWordIndex;
-  int? _forceShowChineseIndex; // 强制显示中文释义的索引
-  String? _selectedLetter;
+class _WordListScreenState extends State<WordListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  int? _centerWordIndex;
+  int? _forceShowChineseIndex; // 强制显示中文释义的索引
+  String? _selectedLetter;
+  bool _isRestoringPosition = true; // 添加标志：是否正在恢复位置
 
-  @override
-  void initState() {
-    super.initState();
-
-    // 加载单词列表
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WordListProvider>().loadWordList();
-    });
-
-    // 从本地存储恢复滚动位置
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<WordListProvider>();
-      if (provider.scrollPosition > 0 && _scrollController.hasClients) {
-        _scrollController.jumpTo(provider.scrollPosition * 100.0);
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+
+    // 加载单词列表并在完成后恢复滚动位置
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<WordListProvider>();
+      provider.loadWordList().then((_) {
+        // 使用addPostFrameCallback确保UI完全渲染后再滚动
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // 再次延迟确保PickerScrollView完全初始化
+          Future.delayed(const Duration(milliseconds: 100)).then((_) {
+            _restoreScrollPosition(provider);
+          });
+        });
+      });
+    });
+  }
+
+  // 恢复滚动位置的独立方法
+  void _restoreScrollPosition(WordListProvider provider) {
+    if (mounted && provider.getSavedCenterIndex() > 0 && _scrollController.hasClients) {
+      // 获取当前视口高度
+      final viewportHeight = MediaQuery.of(context).size.height;
+      final itemHeight = 60.0;
+      // 计算使中心单词居中的偏移量
+      final targetIndex = provider.getSavedCenterIndex();
+      final targetOffset = targetIndex * itemHeight - (viewportHeight - itemHeight) / 2;
+      // 确保偏移量在有效范围内
+      final clampedOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+      // 使用animateTo而不是jumpTo，以确保滚动事件能正确触发中心检测
+      _scrollController.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      ).then((_) {
+        // 滚动完成后，设置恢复位置标志为false
+        _isRestoringPosition = false;
+        print('滚动到保存位置完成，当前中心索引: $targetIndex');
+      });
+      print('恢复滚动位置到索引: $targetIndex, 计算偏移量: $targetOffset, 实际偏移量: $clampedOffset, 视口高度: $viewportHeight, 最大滚动范围: ${_scrollController.position.maxScrollExtent}');
+    } else {
+      // 如果没有需要恢复的位置，直接设置恢复标志为false
+      _isRestoringPosition = false;
+    }
   }
 
   @override
@@ -148,36 +178,41 @@ class _WordListScreenState extends State<WordListScreen> {
             ),
 
             // 右侧单词选择器
-            Expanded(
-              child: PickerScrollView(
-
-                controller: _scrollController,
-
-                itemCount: provider.wordList.length,
-
-                itemExtent: 60.0, // 降低项高度
-
-                onCenterIndexChanged: (index) {
-
-                  setState(() {
-
-                    _centerWordIndex = index;
-
-                  });
-
-                },
-
-                forceShowChineseIndex: _forceShowChineseIndex, // 强制显示中文释义的索引
-
-                itemBuilder: (context, index, isCenter, showChinese) {
-
-                  final word = provider.wordList[index];
-
-                  return _buildWordItem(word, isCenter, showChinese);
-
-                },
-
-              ),
+            Expanded(
+              child: PickerScrollView(
+
+                controller: _scrollController,
+
+                itemCount: provider.wordList.length,
+
+                itemExtent: 60.0, // 降低项高度
+
+                onCenterIndexChanged: (index) {
+
+                  setState(() {
+
+                    _centerWordIndex = index;
+
+                  });
+                  
+                  // 只有在非恢复位置模式时才更新Provider中的中心单词索引
+                  if (!_isRestoringPosition) {
+                    provider.updateCenterWordIndex(index);
+                  }
+
+                },
+
+                forceShowChineseIndex: _forceShowChineseIndex, // 强制显示中文释义的索引
+
+                itemBuilder: (context, index, isCenter, showChinese) {
+
+                  final word = provider.wordList[index];
+
+                  return _buildWordItem(word, isCenter, showChinese);
+
+                },
+
+              ),
             ),
           ],
         ),

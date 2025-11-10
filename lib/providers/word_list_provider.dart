@@ -8,11 +8,13 @@ class WordListProvider with ChangeNotifier {
   final ExcelService _excelService = ExcelService();
   List<WordItem> _wordList = [];
   int _scrollPosition = 0;
+  int _centerWordIndex = 0; // 新增：保存中心单词索引
   bool _isLoading = false;
   String? _error;
 
   List<WordItem> get wordList => _wordList;
   int get scrollPosition => _scrollPosition;
+  int get centerWordIndex => _centerWordIndex; // 新增：获取中心单词索引
   bool get isLoading => _isLoading;
   String? get error => _error;
   int get wordCount => _wordList.length;
@@ -29,6 +31,7 @@ class WordListProvider with ChangeNotifier {
       // 恢复保存的状态
       await _restoreWordStates();
       await _restoreScrollPosition();
+      await _restoreCenterWordIndex(); // 新增：恢复中心单词索引
       
     } catch (e) {
       _error = e.toString();
@@ -48,14 +51,14 @@ class WordListProvider with ChangeNotifier {
     }
   }
 
-  // 获取当前中心位置的单词索引
-  int getCenterWordIndex(double scrollOffset, double viewportHeight, double itemHeight) {
-    if (_wordList.isEmpty) return 0;
-    
-    final centerOffset = scrollOffset + viewportHeight / 2;
-    final centerIndex = (centerOffset / itemHeight).round();
-    
-    return centerIndex.clamp(0, _wordList.length - 1);
+  // 获取当前中心位置的单词索引
+  int getCenterWordIndex(double scrollOffset, double viewportHeight, double itemHeight) {
+    if (_wordList.isEmpty) return 0;
+    
+    final centerOffset = scrollOffset + viewportHeight / 2;
+    final centerIndex = (centerOffset / itemHeight).round();
+    
+    return centerIndex.clamp(0, _wordList.length - 1);
   }
 
   // 设置滚动位置
@@ -65,13 +68,13 @@ class WordListProvider with ChangeNotifier {
     notifyListeners();
   }
   
-  // 更新滚动位置
-  void updateScrollPosition(double offset, double itemHeight) {
-    final newPosition = (offset / itemHeight).round();
-    if (newPosition != _scrollPosition) {
-      _scrollPosition = newPosition.clamp(0, _wordList.length - 1);
-      _saveScrollPosition();
-    }
+  // 更新滚动位置
+  void updateScrollPosition(double offset, double itemHeight) {
+    final newPosition = (offset / itemHeight).round();
+    if (newPosition != _scrollPosition) {
+      _scrollPosition = newPosition.clamp(0, _wordList.length - 1);
+      _saveScrollPosition();
+    }
   }
 
   // 获取首字母分组的起始索引
@@ -143,6 +146,43 @@ class WordListProvider with ChangeNotifier {
       print('恢复滚动位置失败: $e');
       _scrollPosition = 0;
     }
+  }
+
+  // 保存中心单词索引
+  Future<void> _saveCenterWordIndex() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('center_word_index', _centerWordIndex);
+      print('保存中心单词索引: $_centerWordIndex');
+    } catch (e) {
+      print('保存中心单词索引失败: $e');
+    }
+  }
+
+  // 恢复中心单词索引
+  Future<void> _restoreCenterWordIndex() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _centerWordIndex = prefs.getInt('center_word_index') ?? 0;
+      print('恢复中心单词索引: $_centerWordIndex');
+    } catch (e) {
+      print('恢复中心单词索引失败: $e');
+      _centerWordIndex = 0;
+    }
+  }
+
+  // 更新中心单词索引
+  void updateCenterWordIndex(int index) {
+    if (index >= 0 && index < _wordList.length) {
+      _centerWordIndex = index.clamp(0, _wordList.length - 1);
+      _saveCenterWordIndex();
+      print('更新中心单词索引为: $_centerWordIndex');
+    }
+  }
+
+  // 获取中心单词索引，用于初始化时恢复位置
+  int getSavedCenterIndex() {
+    return _centerWordIndex;
   }
 
   // 清除所有数据
