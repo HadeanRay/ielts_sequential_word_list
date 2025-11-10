@@ -15,28 +15,28 @@ class WordListScreen extends StatefulWidget {
   State<WordListScreen> createState() => _WordListScreenState();
 }
 
-class _WordListScreenState extends State<WordListScreen> {
-  final ScrollController _scrollController = ScrollController();
-  int? _centerWordIndex;
-  int? _forceShowChineseIndex; // 强制显示中文释义的索引
+class _WordListScreenState extends State<WordListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  int? _centerWordIndex;
+  int? _forceShowChineseIndex; // 强制显示中文释义的索引
   String? _selectedLetter;
 
-  @override
-  void initState() {
-    super.initState();
-
-    // 加载单词列表
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WordListProvider>().loadWordList();
-    });
-
-    // 从本地存储恢复滚动位置
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<WordListProvider>();
-      if (provider.scrollPosition > 0 && _scrollController.hasClients) {
-        _scrollController.jumpTo(provider.scrollPosition * 100.0);
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+
+    // 加载单词列表
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WordListProvider>().loadWordList();
+    });
+
+    // 从本地存储恢复滚动位置
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<WordListProvider>();
+      if (provider.scrollPosition > 0 && _scrollController.hasClients) {
+        _scrollController.jumpTo(provider.scrollPosition * 100.0);
+      }
+    });
   }
 
   @override
@@ -147,37 +147,37 @@ class _WordListScreenState extends State<WordListScreen> {
               onLetterTap: _handleLetterTap,
             ),
 
-            // 右侧单词选择器
-            Expanded(
-              child: PickerScrollView(
-
-                controller: _scrollController,
-
-                itemCount: provider.wordList.length,
-
-                itemExtent: 60.0, // 降低项高度
-
-                onCenterIndexChanged: (index) {
-
-                  setState(() {
-
-                    _centerWordIndex = index;
-
-                  });
-
-                },
-
-                forceShowChineseIndex: _forceShowChineseIndex, // 强制显示中文释义的索引
-
-                itemBuilder: (context, index, isCenter, showChinese) {
-
-                  final word = provider.wordList[index];
-
-                  return _buildWordItem(word, isCenter, showChinese);
-
-                },
-
-              ),
+            // 右侧单词选择器
+            Expanded(
+              child: PickerScrollView(
+
+                controller: _scrollController,
+
+                itemCount: provider.wordList.length,
+
+                itemExtent: 60.0, // 降低项高度
+
+                onCenterIndexChanged: (index) {
+
+                  setState(() {
+
+                    _centerWordIndex = index;
+
+                  });
+
+                },
+
+                forceShowChineseIndex: _forceShowChineseIndex, // 强制显示中文释义的索引
+
+                itemBuilder: (context, index, isCenter, showChinese) {
+
+                  final word = provider.wordList[index];
+
+                  return _buildWordItem(word, isCenter, showChinese);
+
+                },
+
+              ),
             ),
           ],
         ),
@@ -192,28 +192,28 @@ class _WordListScreenState extends State<WordListScreen> {
     );
   }
 
-  Widget _buildWordItem(WordItem word, bool isCenter, bool showChinese) {
-    return WordListItem(
-      word: word,
-      isCenter: isCenter,
-      showChinese: showChinese, // 传递showChinese参数
-      onTap: () {
-        // 点击单词项时将其滚动到中心
-        final provider = context.read<WordListProvider>();
-        final index = provider.wordList.indexOf(word);
-        if (index != -1 && _scrollController.hasClients) {
-          _scrollController.animateTo(
-
-            index * 60.0, // 更新为新的项高度
-
-            duration: const Duration(milliseconds: 300),
-
-            curve: Curves.easeInOut,
-
-          );
-        }
-      },
-    );
+  Widget _buildWordItem(WordItem word, bool isCenter, bool showChinese) {
+    return WordListItem(
+      word: word,
+      isCenter: isCenter,
+      showChinese: showChinese, // 传递showChinese参数
+      onTap: () {
+        // 点击单词项时将其滚动到中心
+        final provider = context.read<WordListProvider>();
+        final index = provider.wordList.indexOf(word);
+        if (index != -1 && _scrollController.hasClients) {
+          _scrollController.animateTo(
+
+            index * 60.0, // 更新为新的项高度
+
+            duration: const Duration(milliseconds: 300),
+
+            curve: Curves.easeInOut,
+
+          );
+        }
+      },
+    );
   }
 
   void _handleLetterTap(String letter) {
@@ -226,104 +226,74 @@ class _WordListScreenState extends State<WordListScreen> {
     // 获取当前viewport高度
     final viewportHeight = MediaQuery.of(context).size.height;
 
-    if (letter == 'TOP') {
-      // 滚动到顶部
-      if (_scrollController.hasClients) {
+    // 滚动到指定字母
+    final indices = provider.getLetterGroupIndices();
+    final targetIndex = indices[letter];
+    if (targetIndex != null && _scrollController.hasClients) {
+      // 修正：计算正确的居中位置
 
-        _scrollController.animateTo(
-
-          0,
-
-          duration: const Duration(milliseconds: 400),
-
-          curve: Curves.easeInOut,
-
-        );
-
-      }
-    } else if (letter == 'MIDDLE') {
-      // 滚动到中间
-      final middleIndex = (provider.wordList.length / 2).round();
-      if (_scrollController.hasClients) {
-        // 修正：计算正确的居中位置
-
-        final targetOffset = middleIndex * 60.0 - (viewportHeight - 60.0) / 2;
-        _scrollController.animateTo(
-          targetOffset,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
-    } else {
-      // 滚动到指定字母
-      final indices = provider.getLetterGroupIndices();
-      final targetIndex = indices[letter];
-      if (targetIndex != null && _scrollController.hasClients) {
-        // 修正：计算正确的居中位置
-
-        final targetOffset = targetIndex * 60.0 - (viewportHeight - 60.0) / 2;
-        _scrollController.animateTo(
-          targetOffset,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
+      final targetOffset = targetIndex * 60.0 - (viewportHeight - 60.0) / 2;
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
-  void _handleStatusChange(WordStatus status) {
-    if (_centerWordIndex == null) return;
-
-    final provider = context.read<WordListProvider>();
-    provider.updateWordStatus(_centerWordIndex!, status);
-    
-    // 强制显示当前单词的中文释义，通过设置forceShowChineseIndex为当前中心单词
-    setState(() {
-      _forceShowChineseIndex = _centerWordIndex;
-    });
-
-    // 根据不同的状态执行不同的滚动行为
-    switch (status) {
-      case WordStatus.easy:
-        // 立即滚动到下一个单词
-        _scrollToNextWord();
-        break;
-      case WordStatus.hesitant:
-        // 等待3秒后滚动到下一个单词
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) { // 确保widget仍然存在
-            _scrollToNextWord();
-          }
-        });
-        break;
-      case WordStatus.difficult:
-        // 等待5秒后滚动到下一个单词
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) { // 确保widget仍然存在
-            _scrollToNextWord();
-          }
-        });
-        break;
-      default:
-        // 默认不滚动
-        break;
-    }
-  }
-
-  void _scrollToNextWord() {
-    if (_centerWordIndex == null || _centerWordIndex! >= context.read<WordListProvider>().wordList.length - 1) return;
-
-    final nextIndex = _centerWordIndex! + 1;
-    if (_scrollController.hasClients) {
-      // 计算使下一个单词居中的目标偏移量
-      // 目标偏移量 = 目标项索引 * 项高度 - (视口高度 - 项高度) / 2
-      final viewportHeight = MediaQuery.of(context).size.height;
-      final targetOffset = nextIndex * 60.0 - (viewportHeight - 60.0) / 2;
-      _scrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+  void _handleStatusChange(WordStatus status) {
+    if (_centerWordIndex == null) return;
+
+    final provider = context.read<WordListProvider>();
+    provider.updateWordStatus(_centerWordIndex!, status);
+    
+    // 强制显示当前单词的中文释义，通过设置forceShowChineseIndex为当前中心单词
+    setState(() {
+      _forceShowChineseIndex = _centerWordIndex;
+    });
+
+    // 根据不同的状态执行不同的滚动行为
+    switch (status) {
+      case WordStatus.easy:
+        // 立即滚动到下一个单词
+        _scrollToNextWord();
+        break;
+      case WordStatus.hesitant:
+        // 等待3秒后滚动到下一个单词
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) { // 确保widget仍然存在
+            _scrollToNextWord();
+          }
+        });
+        break;
+      case WordStatus.difficult:
+        // 等待5秒后滚动到下一个单词
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) { // 确保widget仍然存在
+            _scrollToNextWord();
+          }
+        });
+        break;
+      default:
+        // 默认不滚动
+        break;
+    }
+  }
+
+  void _scrollToNextWord() {
+    if (_centerWordIndex == null || _centerWordIndex! >= context.read<WordListProvider>().wordList.length - 1) return;
+
+    final nextIndex = _centerWordIndex! + 1;
+    if (_scrollController.hasClients) {
+      // 计算使下一个单词居中的目标偏移量
+      // 目标偏移量 = 目标项索引 * 项高度 - (视口高度 - 项高度) / 2
+      final viewportHeight = MediaQuery.of(context).size.height;
+      final targetOffset = nextIndex * 60.0 - (viewportHeight - 60.0) / 2;
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 }

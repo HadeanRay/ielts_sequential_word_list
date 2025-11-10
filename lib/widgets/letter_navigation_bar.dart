@@ -68,55 +68,10 @@ class LetterNavigationBar extends StatelessWidget {
               ),
             ),
           ),
-
-          // 底部操作区
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            child: Column(
-              children: [
-                // 回到顶部按钮
-                _buildNavButton(
-                  icon: Icons.keyboard_arrow_up,
-                  onPressed: () => onLetterTap('TOP'),
-                ),
-
-                const SizedBox(height: 8),
-
-                // 回到中间按钮
-                _buildNavButton(
-                  icon: Icons.center_focus_strong,
-                  onPressed: () => onLetterTap('MIDDLE'),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 12, color: Colors.grey[700]),
-      ),
-    );
-  }
+  
 }
