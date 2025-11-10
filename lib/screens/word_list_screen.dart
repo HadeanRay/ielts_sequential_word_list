@@ -277,7 +277,7 @@ class _WordListScreenState extends State<WordListScreen> {
     final provider = context.read<WordListProvider>();
     provider.updateWordStatus(_centerWordIndex!, status);
     
-    // 强制显示当前单词的中文释义
+    // 强制显示当前单词的中文释义，通过设置forceShowChineseIndex为当前中心单词
     setState(() {
       _forceShowChineseIndex = _centerWordIndex;
     });

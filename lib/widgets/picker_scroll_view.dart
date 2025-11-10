@@ -149,16 +149,16 @@ class _PickerScrollViewState extends State<PickerScrollView> {
               itemCount: widget.itemCount,
               itemExtent: widget.itemExtent,
               padding: EdgeInsets.zero, // 不使用padding
-              itemBuilder: (context, index) {
-                final isCenter = index == _centerItemIndex;
-                // 判断是否应该显示中文释义
-                // 1. 当前索引大于等于中心索引时显示
-                // 2. 或者是强制显示的索引
-                final showChinese = index >= (_centerItemIndex ?? 0) || 
-                                  (widget.forceShowChineseIndex != null && index >= widget.forceShowChineseIndex!);
-                return Container(
-                  child: widget.itemBuilder(context, index, isCenter, showChinese),
-                );
+              itemBuilder: (context, index) {
+                final isCenter = index == _centerItemIndex;
+                // 判断是否应该显示中文释义
+                // 1. 当前索引小于中心索引时显示（突出显示以上）
+                // 2. 或者是强制显示的索引
+                final showChinese = index < (_centerItemIndex ?? 0) || 
+                                  (widget.forceShowChineseIndex != null && index == widget.forceShowChineseIndex!);
+                return Container(
+                  child: widget.itemBuilder(context, index, isCenter, showChinese),
+                );
               },
             ),
           ],
