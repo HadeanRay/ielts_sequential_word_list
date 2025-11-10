@@ -62,9 +62,9 @@ class WordListItem extends StatelessWidget {
 
         padding: EdgeInsets.symmetric(
 
-          vertical: isCenter ? 12 : 8, // 降低垂直内边距
+          vertical: 8, // 统一垂直内边距
 
-          horizontal: isCenter ? 16 : 12, // 降低水平内边距
+          horizontal: 12, // 统一水平内边距
 
         ),
 
@@ -92,7 +92,7 @@ class WordListItem extends StatelessWidget {
 
                 style: TextStyle(
 
-                  fontSize: isCenter ? 18 : 14, // 降低字体大小
+                  fontSize: 14, // 统一字体大小
 
                   fontWeight: isCenter ? FontWeight.bold : FontWeight.w600,
 
@@ -124,7 +124,7 @@ class WordListItem extends StatelessWidget {
 
                 style: TextStyle(
 
-                  fontSize: isCenter ? 16 : 12, // 降低字体大小
+                  fontSize: 12, // 统一字体大小
 
                   fontWeight: isCenter ? FontWeight.w500 : FontWeight.normal,
 
