@@ -5,7 +5,7 @@ import '../models/word_item.dart';
 
 class ExcelService {
   static const String excelPath = 'assets/words/ielts.xls';
-  static const String csvPath = 'assets/words/ielts.csv';
+  static const String csvPath = 'assets/words/ielts-main.csv';
 
   Future<List<WordItem>> loadWordList() async {
     try {
@@ -42,9 +42,30 @@ class ExcelService {
         final parts = line.split(',');
         if (parts.length >= 2) {
           final english = parts[0].trim();
-          final chinese = parts.sublist(1).join(',').trim();
+          String chinese = '';
           
-          if (english.isNotEmpty) {
+          // 根据文件类型解析不同格式
+          if (csvPath.contains('ielts-main')) {
+            // ielts-main.csv 格式: english,词性中文释义,空字段...
+            // 找到第一个非空的释义字段
+            for (int j = 1; j < parts.length; j++) {
+              final part = parts[j].trim();
+              if (part.isNotEmpty && !part.startsWith('n.') && !part.startsWith('v.') && 
+                  !part.startsWith('adj.') && !part.startsWith('adv.') && !part.startsWith('a.') &&
+                  !part.startsWith('prep.') && !part.startsWith('conj.') && !part.startsWith('interj.') &&
+                  !part.startsWith('pron.') && !part.startsWith('num.') && !part.startsWith('vi.') &&
+                  !part.startsWith('vt.') && !part.startsWith('vs.') && !part.startsWith('n. ') &&
+                  !part.contains('(') && part != ',,,' && part != ',') {
+                chinese = part;
+                break;
+              }
+            }
+          } else {
+            // ielts.csv 格式: english,中文释义1,中文释义2
+            chinese = parts.sublist(1).join(',').trim();
+          }
+          
+          if (english.isNotEmpty && chinese.isNotEmpty) {
             wordList.add(WordItem(
               english: english,
               chinese: chinese,
