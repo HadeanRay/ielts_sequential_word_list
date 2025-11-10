@@ -16,7 +16,7 @@ class LetterNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 24,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),

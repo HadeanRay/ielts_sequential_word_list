@@ -54,7 +54,7 @@ class WordListItem extends StatelessWidget {
 
         margin: EdgeInsets.symmetric(
 
-          horizontal: 20,
+          horizontal: 10,
 
           vertical: 4, // 添加垂直间隙
 
