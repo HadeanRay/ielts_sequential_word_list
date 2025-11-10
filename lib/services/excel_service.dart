@@ -65,12 +65,21 @@ class ExcelService {
             chinese = parts.sublist(1).join(',').trim();
           }
           
-          if (english.isNotEmpty && chinese.isNotEmpty) {
-            wordList.add(WordItem(
-              english: english,
-              chinese: chinese,
-              index: wordList.length,
-            ));
+          if (english.isNotEmpty && chinese.isNotEmpty) {
+            // 移除中文释义前后的不匹配引号（如果存在）
+            String cleanChinese = chinese.trim();
+            if (cleanChinese.startsWith('"') && cleanChinese.length > 1) {
+              cleanChinese = cleanChinese.substring(1); // 移除开头的引号
+            }
+            if (cleanChinese.endsWith('"') && cleanChinese.length > 1) {
+              cleanChinese = cleanChinese.substring(0, cleanChinese.length - 1); // 移除结尾的引号
+            }
+            
+            wordList.add(WordItem(
+              english: english,
+              chinese: cleanChinese,
+              index: wordList.length,
+            ));
           }
         }
       }
@@ -110,12 +119,21 @@ class ExcelService {
         final english = row[0]?.value?.toString() ?? '';
         final chinese = row[1]?.value?.toString() ?? '';
 
-        if (english.isNotEmpty) {
-          wordList.add(WordItem(
-            english: english.trim(),
-            chinese: chinese.trim(),
-            index: wordList.length,
-          ));
+        if (english.isNotEmpty) {
+          // 移除中文释义前后的不匹配引号（如果存在）
+          String cleanChinese = chinese.trim();
+          if (cleanChinese.startsWith('"') && cleanChinese.length > 1) {
+            cleanChinese = cleanChinese.substring(1); // 移除开头的引号
+          }
+          if (cleanChinese.endsWith('"') && cleanChinese.length > 1) {
+            cleanChinese = cleanChinese.substring(0, cleanChinese.length - 1); // 移除结尾的引号
+          }
+          
+          wordList.add(WordItem(
+            english: english.trim(),
+            chinese: cleanChinese,
+            index: wordList.length,
+          ));
         }
       }
 
