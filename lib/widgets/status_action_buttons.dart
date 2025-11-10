@@ -16,14 +16,14 @@ class StatusActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 24,
+      bottom: 48,
       left: 20,
       right: 20,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -70,10 +70,10 @@ class StatusActionButtons extends StatelessWidget {
         onTap: onPressed,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 6),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: Color(color).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: Color(color).withOpacity(0.3),
               width: 1.5,
@@ -82,16 +82,7 @@ class StatusActionButtons extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Color(color), size: 24),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Color(color),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Icon(icon, color: Color(color), size: 28),
             ],
           ),
         ),
