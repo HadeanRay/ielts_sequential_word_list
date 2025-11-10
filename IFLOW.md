@@ -52,6 +52,7 @@ lib/
 └── widgets/                     # UI组件
     ├── word_list_item.dart     # 单词列表项
     ├── letter_navigation_bar.dart # 字母导航栏
+    ├── picker_scroll_view.dart # 滚动选择器视图
     └── status_action_buttons.dart # 状态操作按钮
 
 assets/
@@ -90,6 +91,9 @@ void scrollToLetter(String letter)
 
 // 获取学习统计
 Map<WordStatus, int> getLearningStats()
+
+// 清除所有数据
+Future<void> clearAllData()
 ```
 
 **状态持久化**:
@@ -128,14 +132,14 @@ Map<WordStatus, int> getLearningStats()
 ### 4. 用户界面设计
 
 #### 主界面布局 (WordListScreen)
-- **双栏布局**: 左侧导航栏(24px) + 右侧内容区
+- **双栏布局**: 左侧导航栏(32px) + 右侧内容区
 - **堆叠设计**: 主内容 + 底部操作按钮
 - **响应式**: 根据屏幕高度动态计算
 
 #### 单词列表项 (WordListItem)
-- **三栏布局**: 英文单词(2份) + 中文释义(3份) + 状态指示器
+- **三栏布局**: 英文单词(2份) + 中文释义(3份)
 - **中心高亮**: 蓝色背景和边框突出显示
-- **状态指示器**: 20x20圆形指示器，带白色边框和阴影
+- **状态指示器**: 颜色标识，根据状态改变显示效果
 
 #### 字母导航栏 (LetterNavigationBar)
 - **A-Z字母列表**: 显示有单词的字母，无单词的显示为灰色
@@ -144,8 +148,13 @@ Map<WordStatus, int> getLearningStats()
 
 #### 状态操作按钮 (StatusActionButtons)
 - **三按钮布局**: 简单(绿) + 犹豫(黄) + 困难(红)
-- **悬浮设计**: 固定在屏幕底部，48dp高度
+- **悬浮设计**: 固定在屏幕底部，带阴影效果
 - **智能操作**: 仅对当前中心位置的单词生效
+
+#### 滚动选择器 (PickerScrollView)
+- **智能吸附**: 滚动停止时自动吸附到最近的单词项
+- **中心检测**: 实时检测并高亮屏幕中心的单词项
+- **平滑动画**: 滚动和吸附都使用平滑动画效果
 
 ## 核心算法
 
@@ -272,6 +281,7 @@ WordItem(english: 'ability', chinese: '能力, 才智', index: 1),
 3. **懒加载**: 仅在需要时显示中文释义
 4. **智能刷新**: 局部更新而非整体刷新
 5. **数据预加载**: 启动时加载完整单词列表
+6. **滚动吸附**: 滚动停止时自动吸附到最近的单词项
 
 ### 内存管理
 - 合理的Widget生命周期管理
@@ -319,7 +329,7 @@ theme: ThemeData(
 )
 
 // 调整列表项高度
-final itemHeight = 60.0; // 在WordListProvider中
+final itemHeight = 60.0; // 在WordListProvider和PickerScrollView中
 
 // 修改状态颜色
 int get colorValue {
