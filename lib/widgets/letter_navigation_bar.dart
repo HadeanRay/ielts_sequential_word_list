@@ -15,19 +15,12 @@ class LetterNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      width: 24,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

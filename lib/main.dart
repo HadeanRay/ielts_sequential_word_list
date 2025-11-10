@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
+          scaffoldBackgroundColor: const Color(0xFFF8F9FA), // 接近纯白色的背景
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.white,
             foregroundColor: Colors.black87,
