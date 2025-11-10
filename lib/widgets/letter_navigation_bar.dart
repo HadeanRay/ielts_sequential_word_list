@@ -20,7 +20,6 @@ class LetterNavigationBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -43,9 +42,7 @@ class LetterNavigationBar extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(vertical: 2),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: selectedLetter == letter
-                            ? Colors.blue[100]
-                            : Colors.transparent,
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -56,9 +53,7 @@ class LetterNavigationBar extends StatelessWidget {
                               ? FontWeight.w700
                               : FontWeight.w500,
                           color: hasWords
-                              ? (selectedLetter == letter
-                                    ? Colors.blue[800]
-                                    : Colors.black87)
+                              ? Colors.black87
                               : Colors.grey[400],
                         ),
                       ),
