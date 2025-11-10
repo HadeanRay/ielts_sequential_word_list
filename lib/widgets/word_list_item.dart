@@ -24,23 +24,23 @@ class WordListItem extends StatelessWidget {
     switch (word.status) {
       case WordStatus.easy:
         backgroundColorValue = isCenter ? 0xFF4CAF50 : 0x104CAF50; // 绿色/浅绿色
-        textColorValue = isCenter ? 0xFFFFFFFF : 0xFF4CAF50; // 白色/绿色
-        chineseColorValue = isCenter ? 0xFFFFFFFF : 0xFF4CAF50; // 白色/绿色
+        textColorValue = isCenter ? 0xFF000000 : 0xFF4CAF50; // 深黑色/绿色
+        chineseColorValue = isCenter ? 0xFF000000 : 0xFF4CAF50; // 深黑色/绿色
         break;
       case WordStatus.hesitant:
         backgroundColorValue = isCenter ? 0xFFFFEB3B : 0x10FFEB3B; // 黄色/浅黄色
-        textColorValue = isCenter ? 0xFF000000 : 0xFFFFEB3B; // 黑色/黄色
-        chineseColorValue = isCenter ? 0xFF000000 : 0xFFFFEB3B; // 黑色/黄色
+        textColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; 
+        chineseColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; 
         break;
       case WordStatus.difficult:
         backgroundColorValue = isCenter ? 0xFFF44336 : 0x10F44336; // 红色/浅红色
-        textColorValue = isCenter ? 0xFFFFFFFF : 0xFFF44336; // 白色/红色
-        chineseColorValue = isCenter ? 0xFFFFFFFF : 0xFFF44336; // 白色/红色
+        textColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; // 深黑色/红色
+        chineseColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; // 深黑色/红色
         break;
       default:
         backgroundColorValue = 0x00000000; // 透明
-        textColorValue = 0xFF9E9E9E; // 灰色
-        chineseColorValue = 0xFF9E9E9E; // 灰色
+        textColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; 
+        chineseColorValue = isCenter ? 0xFF000000 : 0xFF9E9E9E; 
         break;
     }
 
