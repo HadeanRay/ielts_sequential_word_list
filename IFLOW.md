@@ -11,6 +11,8 @@
 - **快速导航**: 左侧字母导航栏，支持快速跳转
 - **中心高亮**: 自动检测并高亮当前中心位置的单词
 - **数据持久化**: 使用SharedPreferences本地存储
+- **多格式支持**: 支持CSV和Excel格式的单词数据文件
+- **智能数据加载**: 优先加载CSV文件，回退到Excel文件或示例数据
 
 ## 技术架构
 
@@ -22,11 +24,18 @@
 ### 核心依赖
 ```yaml
 dependencies:
+  flutter:
+    sdk: flutter
   provider: ^6.1.2          # 状态管理
   shared_preferences: ^2.2.2 # 本地存储
   excel: ^2.1.0             # Excel文件处理
   permission_handler: ^11.0.1 # 权限管理
   path_provider: ^2.1.1      # 路径获取
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0     # 代码规范检查
 ```
 
 ### 架构模式
@@ -57,8 +66,9 @@ lib/
 
 assets/
 ├── words/
-│   ├── ielts.csv              # 单词数据(CSV格式)
-│   └── ielts.xls              # 单词数据(Excel格式)
+│   ├── ielts-main.csv         # 单词数据(CSV格式，优先加载)
+│   ├── ielts.csv              # 单词数据(CSV格式，备用)
+│   └── ielts.xls              # 单词数据(Excel格式，最后回退)
 └── icons/                     # 应用图标资源
 ```
 
@@ -71,6 +81,7 @@ assets/
 - 维护学习状态和滚动位置
 - 提供状态持久化功能
 - 计算学习统计数据
+- 管理中心单词索引
 
 **关键方法**:
 ```dart
@@ -86,8 +97,17 @@ int getCenterWordIndex(double scrollOffset, double viewportHeight, double itemHe
 // 设置滚动位置
 void setScrollPosition(int position)
 
+// 更新滚动位置
+void updateScrollPosition(double offset, double itemHeight)
+
 // 滚动到指定字母
 void scrollToLetter(String letter)
+
+// 更新中心单词索引
+void updateCenterWordIndex(int index)
+
+// 获取中心单词索引（用于初始化恢复）
+int getSavedCenterIndex()
 
 // 获取学习统计
 Map<WordStatus, int> getLearningStats()
@@ -99,17 +119,20 @@ Future<void> clearAllData()
 **状态持久化**:
 - 单词状态: `SharedPreferences`存储，键格式为`word_${index}`
 - 滚动位置: `scroll_position`键保存
+- 中心单词索引: `center_word_index`键保存
 - 自动恢复: 应用启动时自动加载保存的数据
 
 ### 2. 数据服务 (ExcelService)
 
 **数据加载策略**:
-1. 首先尝试加载CSV文件 (`assets/words/ielts.csv`)
-2. 如果CSV文件为空或错误，尝试Excel文件 (`assets/words/ielts.xls`)
-3. 如果都失败，返回示例数据作为备选方案
+1. 首先尝试加载CSV文件 (`assets/words/ielts-main.csv`)
+2. 如果第一个CSV文件为空或错误，尝试备用CSV文件 (`assets/words/ielts.csv`)
+3. 如果CSV文件都失败，尝试Excel文件 (`assets/words/ielts.xls`)
+4. 如果都失败，返回示例数据作为备选方案
 
 **支持的数据格式**:
-- **CSV格式**: `english,chinese1,chinese2` 每行一个单词
+- **CSV格式 (ielts-main.csv)**: `english,词性中文释义` 每行一个单词，会智能解析词性标识
+- **CSV格式 (ielts.csv)**: `english,中文释义1,中文释义2` 每行一个单词
 - **Excel格式**: 第一列为英文单词，第二列为中文释义
 - **示例数据**: 包含20个基础雅思单词
 
@@ -222,6 +245,9 @@ flutter drive --target=test_driver/app.dart
 
 # 代码格式化
 dart format .
+
+# 代码规范检查
+flutter analyze
 ```
 
 ## 开发和调试
@@ -250,6 +276,14 @@ flutter run
 - **本地存储**: SharedPreferences操作
 
 ## 数据格式规范
+
+### CSV文件格式 (`assets/words/ielts-main.csv`)
+```
+english,词性中文释义
+abandon,vt. 抛弃;放弃
+ability,n. 能力；本领；才能，才干；专门技能，天资
+able,a. 有(能力、时间、知识等)做某事，有本事的
+```
 
 ### CSV文件格式 (`assets/words/ielts.csv`)
 ```
@@ -282,6 +316,7 @@ WordItem(english: 'ability', chinese: '能力, 才智', index: 1),
 4. **智能刷新**: 局部更新而非整体刷新
 5. **数据预加载**: 启动时加载完整单词列表
 6. **滚动吸附**: 滚动停止时自动吸附到最近的单词项
+7. **智能数据解析**: 自动处理CSV文件中的引号问题
 
 ### 内存管理
 - 合理的Widget生命周期管理
@@ -305,6 +340,7 @@ WordItem(english: 'ability', chinese: '能力, 才智', index: 1),
 1. **数据文件无法加载**: 检查assets配置和文件路径
 2. **状态丢失**: 验证SharedPreferences权限
 3. **性能问题**: 检查大量数据处理和UI重建
+4. **CSV格式错误**: 检查CSV文件编码和格式是否正确
 
 ### 调试技巧
 1. 使用`print()`输出关键变量值
