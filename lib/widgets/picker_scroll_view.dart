@@ -36,114 +36,50 @@ class _PickerScrollViewState extends State<PickerScrollView> {
     super.initState();
     _scrollController = widget.controller ?? ScrollController();
     _scrollController.addListener(_onScroll);
-    
-    // 延迟初始化中心项索引
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _updateCenterItemIndex();
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCenterItemIndex());
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
-    if (widget.controller == null) {
-      _scrollController.dispose();
-    }
+    if (widget.controller == null) _scrollController.dispose();
     _scrollEndTimer?.cancel();
     super.dispose();
   }
 
   void _onScroll() {
-    // 标记用户正在滚动
-    if (!_isUserScrolling) {
-      _isUserScrolling = true;
-    }
-
-    // 取消之前的定时器
+    _isUserScrolling = true;
     _scrollEndTimer?.cancel();
-
-    // 设置滚动结束检测
     _scrollEndTimer = Timer(const Duration(milliseconds: 150), () {
-      if (mounted && _isUserScrolling) {
-        _snapToCenter();
-      }
+      if (mounted && _isUserScrolling) _snapToCenter();
     });
-
-    // 更新中心项索引
     _updateCenterItemIndex();
   }
 
   void _updateCenterItemIndex() {
-
     if (_viewportHeight <= 0) return;
-
-    
-
-    // 计算屏幕中心位置对应的索引
-
-    // 屏幕中心位置 = 滚动偏移量 + 视口高度的一半 - 项高度的一半
-
-    // 这样可以确保中心检测区域正确
-
     final centerOffset = _scrollController.offset + _viewportHeight / 2 - widget.itemExtent / 2;
+    final centerIndex = (centerOffset / widget.itemExtent).round().clamp(0, widget.itemCount - 1);
 
-    // 中心项索引 = 中心位置 / 项高度
-
-    final centerIndex = (centerOffset / widget.itemExtent).round();
-
-    final clampedIndex = centerIndex.clamp(0, widget.itemCount - 1);
-
-
-
-    if (clampedIndex != _centerItemIndex) {
-
-      setState(() {
-
-        _centerItemIndex = clampedIndex;
-
-      });
-
-      
-
-      // 通知外部中心项已更改
-
-      if (widget.onCenterIndexChanged != null) {
-
-        print('中心单词索引更新为: $clampedIndex');
-
-        widget.onCenterIndexChanged!(clampedIndex);
-
-      }
-
+    if (centerIndex != _centerItemIndex) {
+      setState(() => _centerItemIndex = centerIndex);
+      widget.onCenterIndexChanged?.call(centerIndex);
     }
-
   }
 
   void _snapToCenter() {
     if (_centerItemIndex == null) return;
-
-    // 计算目标偏移量 - 确保目标项位于屏幕中央
-    // 目标偏移量 = 目标项索引 * 项高度 - (视口高度 - 项高度) / 2 + 项高度 / 2
-    // 修正：确保吸附位置正确
     final targetOffset = _centerItemIndex! * widget.itemExtent - (_viewportHeight - widget.itemExtent) / 2;
-    final currentOffset = _scrollController.offset;
-    final difference = (targetOffset - currentOffset).abs();
+    final difference = (targetOffset - _scrollController.offset).abs();
 
-    // 如果当前位置与目标位置差距大于一个像素，则执行吸附动画
     if (difference > 1.0) {
       _scrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
       ).then((_) {
-        // 吸附完成后重置用户滚动标记
         _isUserScrolling = false;
-        // 在动画结束后更新中心项以确保准确性
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _updateCenterItemIndex();
-        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _updateCenterItemIndex());
       });
     } else {
       _isUserScrolling = false;
@@ -155,38 +91,17 @@ class _PickerScrollViewState extends State<PickerScrollView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _viewportHeight = constraints.maxHeight;
-        
-        return Stack(
-          children: [
-            // 主滚动列表 - 不使用padding，让第一个单词从顶部开始
-            ListView.builder(
-              controller: _scrollController,
-              itemCount: widget.itemCount,
-              itemExtent: widget.itemExtent,
-              padding: EdgeInsets.zero, // 不使用padding
-              itemBuilder: (context, index) {
-
-                final isCenter = index == _centerItemIndex;
-
-                // 判断是否应该显示中文释义
-
-                // 1. 当前索引小于中心索引时显示（突出显示以上）
-
-                // 2. 或者是强制显示的索引
-
-                final showChinese = index < (_centerItemIndex ?? 0) || 
-
-                                  (widget.forceShowChineseIndex != null && index == widget.forceShowChineseIndex!);
-
-                return Container(
-
-                  child: widget.itemBuilder(context, index, isCenter, showChinese),
-
-                );
-
-              },
-            ),
-          ],
+        return ListView.builder(
+          controller: _scrollController,
+          itemCount: widget.itemCount,
+          itemExtent: widget.itemExtent,
+          padding: EdgeInsets.zero,
+          itemBuilder: (context, index) {
+            final isCenter = index == _centerItemIndex;
+            final showChinese = index < (_centerItemIndex ?? 0) || 
+                (widget.forceShowChineseIndex != null && index == widget.forceShowChineseIndex!);
+            return widget.itemBuilder(context, index, isCenter, showChinese);
+          },
         );
       },
     );

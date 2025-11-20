@@ -8,6 +8,12 @@ import '../widgets/picker_scroll_view.dart';
 import '../widgets/status_action_buttons.dart';
 import '../widgets/word_list_item.dart';
 
+class _Constants {
+  static const double itemHeight = 60.0;
+  static const Duration scrollDuration = Duration(milliseconds: 300);
+  static const Duration restoreDuration = Duration(milliseconds: 500);
+}
+
 class WordListScreen extends StatefulWidget {
   const WordListScreen({super.key});
 
@@ -16,107 +22,57 @@ class WordListScreen extends StatefulWidget {
 }
 
 class _WordListScreenState extends State<WordListScreen> {
-
   final ScrollController _scrollController = ScrollController();
-
   int? _centerWordIndex;
-
-  int? _forceShowChineseIndex; // 强制显示中文释义的索引
-
+  int? _forceShowChineseIndex;
   String? _selectedLetter;
-
-  bool _isRestoringPosition = true; // 添加标志：是否正在恢复位置
+  bool _isRestoringPosition = true;
 
   @override
-
   void initState() {
-
     super.initState();
-
-
-
-    // 加载单词列表并在完成后恢复滚动位置
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
-      final provider = context.read<WordListProvider>();
-
-      provider.loadWordList().then((_) {
-
-        // 使用addPostFrameCallback确保UI完全渲染后再滚动
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-
-          // 再次延迟确保PickerScrollView完全初始化
-
-          Future.delayed(const Duration(milliseconds: 100)).then((_) {
-
-            _restoreScrollPosition(provider);
-
-          });
-
-        });
-
-      });
-
+      _initializeScreen();
     });
-
   }
 
-
-
-  // 恢复滚动位置的独立方法
+  Future<void> _initializeScreen() async {
+    final provider = context.read<WordListProvider>();
+    await provider.loadWordList();
+    if (mounted) {
+      _restoreScrollPosition(provider);
+    }
+  }
 
   void _restoreScrollPosition(WordListProvider provider) {
+    if (provider.wordList.isEmpty) return;
 
-    if (mounted && provider.getSavedCenterIndex() > 0 && _scrollController.hasClients) {
+    final savedIndex = provider.getSavedCenterIndex();
+    final clampedIndex = savedIndex.clamp(0, provider.wordList.length - 1);
+    
+    setState(() {
+      _centerWordIndex = clampedIndex;
+      _isRestoringPosition = true;
+    });
 
-      // 获取当前视口高度
+    // 延迟执行滚动以确保widget已经构建完成
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final viewportHeight = MediaQuery.of(context).size.height;
+        final targetOffset = _calculateTargetOffset(clampedIndex, viewportHeight);
+        _scrollController.jumpTo(targetOffset);
+        
+        setState(() {
+          _isRestoringPosition = false;
+        });
+      }
+    });
+  }
 
-      final viewportHeight = MediaQuery.of(context).size.height;
-
-      final itemHeight = 60.0;
-
-      // 计算使中心单词居中的偏移量
-
-      final targetIndex = provider.getSavedCenterIndex();
-
-      final targetOffset = targetIndex * itemHeight - (viewportHeight - itemHeight) / 2;
-
-      // 确保偏移量在有效范围内
-
-      final clampedOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
-
-      // 使用animateTo而不是jumpTo，以确保滚动事件能正确触发中心检测
-
-      _scrollController.animateTo(
-
-        clampedOffset,
-
-        duration: const Duration(milliseconds: 500),
-
-        curve: Curves.easeInOut,
-
-      ).then((_) {
-
-        // 滚动完成后，设置恢复位置标志为false
-
-        _isRestoringPosition = false;
-
-        print('滚动到保存位置完成，当前中心索引: $targetIndex');
-
-      });
-
-      print('恢复滚动位置到索引: $targetIndex, 计算偏移量: $targetOffset, 实际偏移量: $clampedOffset, 视口高度: $viewportHeight, 最大滚动范围: ${_scrollController.position.maxScrollExtent}');
-
-    } else {
-
-      // 如果没有需要恢复的位置，直接设置恢复标志为false
-
-      _isRestoringPosition = false;
-
-    }
-
+  double _calculateTargetOffset(int index, double viewportHeight) {
+    final centerOffset = index * _Constants.itemHeight;
+    final targetOffset = centerOffset - (viewportHeight / 2) + (_Constants.itemHeight / 2);
+    return targetOffset.clamp(0.0, double.infinity);
   }
 
   @override
@@ -242,7 +198,7 @@ class _WordListScreenState extends State<WordListScreen> {
 
 
 
-                itemExtent: 60.0, // 降低项高度
+                itemExtent: _Constants.itemHeight,
 
 
 
@@ -316,43 +272,31 @@ class _WordListScreenState extends State<WordListScreen> {
     return WordListItem(
       word: word,
       isCenter: isCenter,
-      showChinese: showChinese, // 传递showChinese参数
-      onTap: () {
-        // 点击单词项时将其滚动到中心
-        final provider = context.read<WordListProvider>();
-        final index = provider.wordList.indexOf(word);
-        if (index != -1 && _scrollController.hasClients) {
-          _scrollController.animateTo(
-
-            index * 60.0, // 更新为新的项高度
-
-            duration: const Duration(milliseconds: 300),
-
-            curve: Curves.easeInOut,
-
-          );
-        }
-      },
+      showChinese: showChinese,
+      onTap: () => _scrollToWord(word),
     );
+  }
+
+  void _scrollToWord(WordItem word) {
+    final provider = context.read<WordListProvider>();
+    final index = provider.wordList.indexOf(word);
+    if (index != -1 && _scrollController.hasClients) {
+      _scrollController.animateTo(
+        index * _Constants.itemHeight,
+        duration: _Constants.scrollDuration,
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   void _handleLetterTap(String letter) {
     final provider = context.read<WordListProvider>();
+    setState(() => _selectedLetter = letter);
 
-    setState(() {
-      _selectedLetter = letter;
-    });
-
-    // 获取当前viewport高度
-    final viewportHeight = MediaQuery.of(context).size.height;
-
-    // 滚动到指定字母
-    final indices = provider.getLetterGroupIndices();
-    final targetIndex = indices[letter];
+    final targetIndex = provider.getLetterGroupIndices()[letter];
     if (targetIndex != null && _scrollController.hasClients) {
-      // 修正：计算正确的居中位置
-
-      final targetOffset = targetIndex * 60.0 - (viewportHeight - 60.0) / 2;
+      final viewportHeight = MediaQuery.of(context).size.height;
+      final targetOffset = _calculateTargetOffset(targetIndex, viewportHeight);
       _scrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 400),
@@ -367,51 +311,36 @@ class _WordListScreenState extends State<WordListScreen> {
     final provider = context.read<WordListProvider>();
     provider.updateWordStatus(_centerWordIndex!, status);
     
-    // 强制显示当前单词的中文释义，通过设置forceShowChineseIndex为当前中心单词
-    setState(() {
-      _forceShowChineseIndex = _centerWordIndex;
-    });
+    setState(() => _forceShowChineseIndex = _centerWordIndex);
 
-    // 根据不同的状态执行不同的滚动行为
     switch (status) {
       case WordStatus.easy:
-        // 立即滚动到下一个单词
         _scrollToNextWord();
         break;
       case WordStatus.hesitant:
-        // 等待3秒后滚动到下一个单词
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) { // 确保widget仍然存在
-            _scrollToNextWord();
-          }
-        });
-        break;
       case WordStatus.difficult:
-        // 等待5秒后滚动到下一个单词
         Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) { // 确保widget仍然存在
-            _scrollToNextWord();
-          }
+          if (mounted) _scrollToNextWord();
         });
         break;
       default:
-        // 默认不滚动
         break;
     }
   }
 
   void _scrollToNextWord() {
-    if (_centerWordIndex == null || _centerWordIndex! >= context.read<WordListProvider>().wordList.length - 1) return;
+    if (_centerWordIndex == null) return;
+    
+    final provider = context.read<WordListProvider>();
+    if (_centerWordIndex! >= provider.wordList.length - 1) return;
 
     final nextIndex = _centerWordIndex! + 1;
     if (_scrollController.hasClients) {
-      // 计算使下一个单词居中的目标偏移量
-      // 目标偏移量 = 目标项索引 * 项高度 - (视口高度 - 项高度) / 2
       final viewportHeight = MediaQuery.of(context).size.height;
-      final targetOffset = nextIndex * 60.0 - (viewportHeight - 60.0) / 2;
+      final targetOffset = _calculateTargetOffset(nextIndex, viewportHeight);
       _scrollController.animateTo(
         targetOffset,
-        duration: const Duration(milliseconds: 300),
+        duration: _Constants.scrollDuration,
         curve: Curves.easeInOut,
       );
     }
