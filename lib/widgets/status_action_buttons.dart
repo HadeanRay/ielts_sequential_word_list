@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/word_status.dart';
 
 class StatusActionButtons extends StatelessWidget {
   final VoidCallback? onEasyPressed;
