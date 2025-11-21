@@ -37,6 +37,12 @@ class StatusActionButtons extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildStatusButton(
+              label: '筛选',
+              color: 0xFF2196F3, // 蓝色
+              onPressed: onFilterPressed,
+              icon: Icons.filter_list,
+            ),
+            _buildStatusButton(
               label: '简单',
               color: 0xFF4CAF50,
               onPressed: onEasyPressed,
@@ -53,12 +59,6 @@ class StatusActionButtons extends StatelessWidget {
               color: 0xFFF44336,
               onPressed: onDifficultPressed,
               icon: Icons.cancel,
-            ),
-            _buildStatusButton(
-              label: '筛选',
-              color: 0xFF2196F3, // 蓝色
-              onPressed: onFilterPressed,
-              icon: Icons.filter_list,
             ),
           ],
         ),
