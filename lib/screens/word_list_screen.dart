@@ -70,9 +70,17 @@ class _WordListScreenState extends State<WordListScreen> {
   }
 
   double _calculateTargetOffset(int index, double viewportHeight) {
+
+    // 这里需要根据是否应用了筛选来计算偏移量
+
+    // 但在滚动到特定位置时，我们仍然使用原始列表的索引
+
     final centerOffset = index * _Constants.itemHeight;
+
     final targetOffset = centerOffset - (viewportHeight / 2) + (_Constants.itemHeight / 2);
+
     return targetOffset.clamp(0.0, double.infinity);
+
   }
 
   @override
@@ -95,8 +103,12 @@ class _WordListScreenState extends State<WordListScreen> {
           }
 
           if (provider.wordList.isEmpty) {
+
             return _buildEmptyScreen();
+
           }
+
+
 
           return _buildMainScreen(provider);
         },
@@ -177,10 +189,15 @@ class _WordListScreenState extends State<WordListScreen> {
         Row(
           children: [
             // 左侧导航栏
+
             LetterNavigationBar(
-              letterIndices: provider.getLetterGroupIndices(),
+
+              letterIndices: provider.hasFilterApplied() ? {} : provider.getLetterGroupIndices(),
+
               selectedLetter: _selectedLetter,
+
               onLetterTap: _handleLetterTap,
+
             ),
 
             // 右侧单词选择器
@@ -194,7 +211,7 @@ class _WordListScreenState extends State<WordListScreen> {
 
 
 
-                itemCount: provider.wordList.length,
+                itemCount: provider.filteredWordList.length,
 
 
 
@@ -240,7 +257,7 @@ class _WordListScreenState extends State<WordListScreen> {
 
 
 
-                  final word = provider.wordList[index];
+                  final word = provider.filteredWordList[index];
 
 
 
@@ -259,10 +276,17 @@ class _WordListScreenState extends State<WordListScreen> {
         ),
 
         // 底部状态按钮
+
         StatusActionButtons(
+
           onEasyPressed: () => _handleStatusChange(WordStatus.easy),
+
           onHesitantPressed: () => _handleStatusChange(WordStatus.hesitant),
+
           onDifficultPressed: () => _handleStatusChange(WordStatus.difficult),
+
+          onFilterPressed: () => _showFilterMenu(),
+
         ),
       ],
     );
@@ -278,31 +302,79 @@ class _WordListScreenState extends State<WordListScreen> {
   }
 
   void _scrollToWord(WordItem word) {
+
     final provider = context.read<WordListProvider>();
-    final index = provider.wordList.indexOf(word);
+
+    // 根据是否有筛选应用，使用不同的列表来查找索引
+
+    final index = provider.hasFilterApplied() 
+
+        ? provider.filteredWordList.indexOf(word) 
+
+        : provider.wordList.indexOf(word);
+
     if (index != -1 && _scrollController.hasClients) {
+
       _scrollController.animateTo(
+
         index * _Constants.itemHeight,
+
         duration: _Constants.scrollDuration,
+
         curve: Curves.easeInOut,
+
       );
+
     }
+
   }
 
   void _handleLetterTap(String letter) {
+
     final provider = context.read<WordListProvider>();
+
     setState(() => _selectedLetter = letter);
 
-    final targetIndex = provider.getLetterGroupIndices()[letter];
-    if (targetIndex != null && _scrollController.hasClients) {
-      final viewportHeight = MediaQuery.of(context).size.height;
-      final targetOffset = _calculateTargetOffset(targetIndex, viewportHeight);
-      _scrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+
+
+    // 如果有筛选，则不能按字母跳转，因为筛选后的列表可能不包含该字母
+
+    if (provider.hasFilterApplied()) {
+
+      // 显示提示信息
+
+      ScaffoldMessenger.of(context).showSnackBar(
+
+        const SnackBar(content: Text('当前已应用筛选，无法按字母跳转')),
+
       );
+
+      return;
+
     }
+
+
+
+    final targetIndex = provider.getLetterGroupIndices()[letter];
+
+    if (targetIndex != null && _scrollController.hasClients) {
+
+      final viewportHeight = MediaQuery.of(context).size.height;
+
+      final targetOffset = _calculateTargetOffset(targetIndex, viewportHeight);
+
+      _scrollController.animateTo(
+
+        targetOffset,
+
+        duration: const Duration(milliseconds: 400),
+
+        curve: Curves.easeInOut,
+
+      );
+
+    }
+
   }
 
   void _handleStatusChange(WordStatus status) {
@@ -329,20 +401,231 @@ class _WordListScreenState extends State<WordListScreen> {
   }
 
   void _scrollToNextWord() {
+
     if (_centerWordIndex == null) return;
+
     
+
     final provider = context.read<WordListProvider>();
-    if (_centerWordIndex! >= provider.wordList.length - 1) return;
+
+    final listLength = provider.hasFilterApplied() ? provider.filteredWordList.length : provider.wordList.length;
+
+    if (_centerWordIndex! >= listLength - 1) return;
+
+
 
     final nextIndex = _centerWordIndex! + 1;
+
     if (_scrollController.hasClients) {
+
       final viewportHeight = MediaQuery.of(context).size.height;
+
       final targetOffset = _calculateTargetOffset(nextIndex, viewportHeight);
+
       _scrollController.animateTo(
+
         targetOffset,
+
         duration: _Constants.scrollDuration,
+
         curve: Curves.easeInOut,
+
       );
+
     }
+
   }
+
+
+
+  void _showFilterMenu() {
+
+    final provider = context.read<WordListProvider>();
+
+    showModalBottomSheet<void>(
+
+      context: context,
+
+      isScrollControlled: true,
+
+      shape: const RoundedRectangleBorder(
+
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+
+      ),
+
+      builder: (BuildContext context) {
+
+        return StatefulBuilder(
+
+          builder: (BuildContext context, StateSetter setState) {
+
+            return Container(
+
+              padding: const EdgeInsets.all(20),
+
+              child: Column(
+
+                mainAxisSize: MainAxisSize.min,
+
+                children: [
+
+                  const Text(
+
+                    '筛选单词',
+
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('全部'),
+
+                    value: null,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) {
+
+                      provider.clearFilter();
+
+                      Navigator.pop(context);
+
+                    },
+
+                  ),
+
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('未学习'),
+
+                    value: WordStatus.defaultState,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) {
+
+                      if (value != null) {
+
+                        provider.applyFilter(value);
+
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
+                  ),
+
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('简单'),
+
+                    value: WordStatus.easy,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) {
+
+                      if (value != null) {
+
+                        provider.applyFilter(value);
+
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
+                  ),
+
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('犹豫'),
+
+                    value: WordStatus.hesitant,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) {
+
+                      if (value != null) {
+
+                        provider.applyFilter(value);
+
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
+                  ),
+
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('困难'),
+
+                    value: WordStatus.difficult,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) {
+
+                      if (value != null) {
+
+                        provider.applyFilter(value);
+
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ElevatedButton(
+
+                    onPressed: () {
+
+                      provider.clearFilter();
+
+                      Navigator.pop(context);
+
+                    },
+
+                    style: ElevatedButton.styleFrom(
+
+                      backgroundColor: Colors.red,
+
+                      foregroundColor: Colors.white,
+
+                    ),
+
+                    child: const Text('清除筛选'),
+
+                  ),
+
+                  const SizedBox(height: 20),
+
+                ],
+
+              ),
+
+            );
+
+          },
+
+        );
+
+      },
+
+    );
+
+  }
+
 }

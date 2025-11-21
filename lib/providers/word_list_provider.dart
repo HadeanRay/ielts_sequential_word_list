@@ -11,19 +11,40 @@ class _PrefsKeys {
 }
 
 class WordListProvider with ChangeNotifier {
+
   final ExcelService _excelService = ExcelService();
+
   List<WordItem> _wordList = [];
+
+  List<WordItem> _filteredWordList = [];
+
   int _scrollPosition = 0;
+
   int _centerWordIndex = 0;
+
   bool _isLoading = false;
+
   String? _error;
 
+  WordStatus? _filterStatus; // 筛选状态
+
+
+
   List<WordItem> get wordList => _wordList;
+
+  List<WordItem> get filteredWordList => _filterStatus == null ? _wordList : _filteredWordList;
+
   int get scrollPosition => _scrollPosition;
+
   int get centerWordIndex => _centerWordIndex;
+
   bool get isLoading => _isLoading;
+
   String? get error => _error;
+
   int get wordCount => _wordList.length;
+
+  WordStatus? get filterStatus => _filterStatus;
 
   Future<void> loadWordList() async {
     _isLoading = true;
@@ -43,9 +64,13 @@ class WordListProvider with ChangeNotifier {
   }
 
   Future<void> _restoreAllData() async {
+
     await _restoreWordStates();
+
     _scrollPosition = await _restoreFromPrefs(_PrefsKeys.scrollPosition, 0);
+
     _centerWordIndex = await _restoreFromPrefs(_PrefsKeys.centerWordIndex, 0);
+
   }
 
   void updateWordStatus(int index, WordStatus status) {
@@ -77,12 +102,21 @@ class WordListProvider with ChangeNotifier {
   }
 
   Map<String, int> getLetterGroupIndices() {
+
     final indices = <String, int>{};
-    for (int i = 0; i < _wordList.length; i++) {
-      final firstLetter = _wordList[i].english[0].toUpperCase();
+
+    List<WordItem> listToUse = _filterStatus == null ? _wordList : _filteredWordList;
+
+    for (int i = 0; i < listToUse.length; i++) {
+
+      final firstLetter = listToUse[i].english[0].toUpperCase();
+
       indices.putIfAbsent(firstLetter, () => i);
+
     }
+
     return indices;
+
   }
 
   void scrollToLetter(String letter) {
@@ -131,13 +165,54 @@ class WordListProvider with ChangeNotifier {
   }
 
   void updateCenterWordIndex(int index) {
-    if (index >= 0 && index < _wordList.length) {
-      _centerWordIndex = index.clamp(0, _wordList.length - 1);
-      _saveToPrefs(_PrefsKeys.centerWordIndex, _centerWordIndex);
+
+    // 如果有筛选，需要将过滤列表中的索引转换为原始列表中的索引
+
+    int actualIndex;
+
+    if (_filterStatus != null && index >= 0 && index < _filteredWordList.length) {
+
+      // 在过滤列表中找到对应原始列表的索引
+
+      WordItem word = _filteredWordList[index];
+
+      actualIndex = _wordList.indexOf(word);
+
+    } else {
+
+      actualIndex = index.clamp(0, _wordList.length - 1);
+
     }
+
+
+
+    if (actualIndex >= 0 && actualIndex < _wordList.length) {
+
+      _centerWordIndex = actualIndex;
+
+      _saveToPrefs(_PrefsKeys.centerWordIndex, _centerWordIndex);
+
+    }
+
   }
 
-  int getSavedCenterIndex() => _centerWordIndex;
+  int getSavedCenterIndex() {
+
+    if (_filterStatus != null && _centerWordIndex >= 0 && _centerWordIndex < _wordList.length) {
+
+      // 如果有筛选，查找原始索引在过滤列表中的位置
+
+      WordItem centerWord = _wordList[_centerWordIndex];
+
+      int filteredIndex = _filteredWordList.indexOf(centerWord);
+
+      return filteredIndex >= 0 ? filteredIndex : 0;
+
+    }
+
+    return _centerWordIndex;
+
+  }
 
   Future<void> clearAllData() async {
     try {
@@ -157,14 +232,73 @@ class WordListProvider with ChangeNotifier {
   }
 
   Map<WordStatus, int> getLearningStats() {
+
     final stats = <WordStatus, int>{
+
       for (var status in WordStatus.values) status: 0,
+
     };
+
     
+
     for (final word in _wordList) {
+
       stats[word.status] = stats[word.status]! + 1;
+
     }
+
     
+
     return stats;
+
   }
+
+
+
+  void applyFilter(WordStatus? status) {
+
+    _filterStatus = status;
+
+    if (status == null) {
+
+      _filteredWordList = _wordList;
+
+    } else {
+
+      _filteredWordList = _wordList.where((word) => word.status == status).toList();
+
+    }
+
+    notifyListeners();
+
+  }
+
+
+
+  void clearFilter() {
+
+    _filterStatus = null;
+
+    _filteredWordList = _wordList;
+
+    notifyListeners();
+
+  }
+
+
+
+  bool hasFilterApplied() {
+
+    return _filterStatus != null;
+
+  }
+
+
+
+  int get filteredWordCount {
+
+    return _filteredWordList.length;
+
+  }
+
 }
