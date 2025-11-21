@@ -44,29 +44,41 @@ class _WordListScreenState extends State<WordListScreen> {
     }
   }
 
-  void _restoreScrollPosition(WordListProvider provider) {
-    if (provider.wordList.isEmpty) return;
-
-    final savedIndex = provider.getSavedCenterIndex();
-    final clampedIndex = savedIndex.clamp(0, provider.wordList.length - 1);
-    
-    setState(() {
-      _centerWordIndex = clampedIndex;
-      _isRestoringPosition = true;
-    });
-
-    // 延迟执行滚动以确保widget已经构建完成
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        final viewportHeight = MediaQuery.of(context).size.height;
-        final targetOffset = _calculateTargetOffset(clampedIndex, viewportHeight);
-        _scrollController.jumpTo(targetOffset);
-        
-        setState(() {
-          _isRestoringPosition = false;
-        });
-      }
-    });
+  void _restoreScrollPosition(WordListProvider provider) {
+    if (provider.wordList.isEmpty) return;
+
+    // 始终使用原始列表中的绝对索引
+    final savedIndex = provider.getSavedCenterIndex(); // 这是原始列表中的索引
+    final originalClampedIndex = savedIndex.clamp(0, provider.wordList.length - 1);
+    
+    // 如果当前有筛选，需要将原始索引转换为筛选列表中的索引
+    int displayIndex = originalClampedIndex;
+    if (provider.hasFilterApplied()) {
+      WordItem centerWord = provider.wordList[originalClampedIndex];
+      displayIndex = provider.filteredWordList.indexOf(centerWord);
+      // 如果筛选后单词不在列表中，使用第一个单词
+      if (displayIndex == -1) {
+        displayIndex = 0;
+      }
+    }
+    
+    setState(() {
+      _centerWordIndex = displayIndex;
+      _isRestoringPosition = true;
+    });
+
+    // 延迟执行滚动以确保widget已经构建完成
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final viewportHeight = MediaQuery.of(context).size.height;
+        final targetOffset = _calculateTargetOffset(displayIndex, viewportHeight);
+        _scrollController.jumpTo(targetOffset);
+        
+        setState(() {
+          _isRestoringPosition = false;
+        });
+      }
+    });
   }
 
   double _calculateTargetOffset(int index, double viewportHeight) {
@@ -377,27 +389,35 @@ class _WordListScreenState extends State<WordListScreen> {
 
   }
 
-  void _handleStatusChange(WordStatus status) {
-    if (_centerWordIndex == null) return;
-
-    final provider = context.read<WordListProvider>();
-    provider.updateWordStatus(_centerWordIndex!, status);
-    
-    setState(() => _forceShowChineseIndex = _centerWordIndex);
-
-    switch (status) {
-      case WordStatus.easy:
-        _scrollToNextWord();
-        break;
-      case WordStatus.hesitant:
-      case WordStatus.difficult:
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) _scrollToNextWord();
-        });
-        break;
-      default:
-        break;
-    }
+  void _handleStatusChange(WordStatus status) {
+    if (_centerWordIndex == null) return;
+
+    final provider = context.read<WordListProvider>();
+    // 使用filteredWordList来获取当前单词
+    if (_centerWordIndex! < provider.filteredWordList.length) {
+      final currentWord = provider.filteredWordList[_centerWordIndex!];
+      // 通过原始列表的索引来更新状态
+      int originalIndex = provider.wordList.indexOf(currentWord);
+      if (originalIndex != -1) {
+        provider.updateWordStatus(originalIndex, status);
+      }
+    }
+    
+    setState(() => _forceShowChineseIndex = _centerWordIndex);
+
+    switch (status) {
+      case WordStatus.easy:
+        _scrollToNextWord();
+        break;
+      case WordStatus.hesitant:
+      case WordStatus.difficult:
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) _scrollToNextWord();
+        });
+        break;
+      default:
+        break;
+    }
   }
 
   void _scrollToNextWord() {
@@ -438,22 +458,54 @@ class _WordListScreenState extends State<WordListScreen> {
 
 
 
-  void _showFilterMenu() {
-
-    final provider = context.read<WordListProvider>();
-
-    showModalBottomSheet<void>(
-
-      context: context,
-
-      isScrollControlled: true,
-
-      shape: const RoundedRectangleBorder(
-
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-
-      ),
-
+  int _findClosestWordIndexInFilteredList(List<WordItem> fullList, List<WordItem> filteredList, int originalIndex) {
+    if (filteredList.isEmpty) return 0;
+    if (originalIndex < 0 || originalIndex >= fullList.length) return 0;
+
+    // 获取当前单词在原始列表中的位置
+    WordItem currentWord = fullList[originalIndex];
+
+    // 检查当前单词是否在筛选列表中
+    int indexInFilteredList = filteredList.indexOf(currentWord);
+    if (indexInFilteredList != -1) {
+      return indexInFilteredList;
+    }
+
+    // 如果当前单词不在筛选列表中，找到原始列表中离它最近的单词在筛选列表中的位置
+    int minDistance = fullList.length;
+    int closestFilteredListIndex = 0;
+
+    for (int i = 0; i < filteredList.length; i++) {
+      WordItem filteredWord = filteredList[i];
+      int originalListIndex = fullList.indexOf(filteredWord);
+      if (originalListIndex != -1) {
+        int distance = (originalListIndex - originalIndex).abs();
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestFilteredListIndex = i;
+        }
+      }
+    }
+
+    return closestFilteredListIndex;
+  }
+
+  void _showFilterMenu() {
+
+    final provider = context.read<WordListProvider>();
+
+    showModalBottomSheet<void>(
+
+      context: context,
+
+      isScrollControlled: true,
+
+      shape: const RoundedRectangleBorder(
+
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+
+      ),
+
       builder: (BuildContext context) {
 
         return StatefulBuilder(
@@ -488,114 +540,350 @@ class _WordListScreenState extends State<WordListScreen> {
 
                     groupValue: provider.filterStatus,
 
-                    onChanged: (WordStatus? value) {
-
-                      provider.clearFilter();
-
-                      Navigator.pop(context);
-
+                    onChanged: (WordStatus? value) async {
+
+                      // 在应用筛选前保存当前中心单词
+                      WordItem? currentWord;
+                      if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                        currentWord = provider.filteredWordList[_centerWordIndex!];
+                      }
+
+                      provider.clearFilter();
+
+                      // 等待UI更新后，找到之前的单词在新列表中的位置
+                      await Future.delayed(Duration.zero);
+                      if (currentWord != null && mounted) {
+                        int newCenterIndex = provider.wordList.indexOf(currentWord);
+                        if (newCenterIndex != -1) {
+                          // 更新UI的中心索引
+                          setState(() {
+                            _centerWordIndex = newCenterIndex;
+                          });
+
+                          // 滚动到新位置
+                          if (_scrollController.hasClients) {
+                            final viewportHeight = MediaQuery.of(context).size.height;
+                            final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                            _scrollController.animateTo(
+                              targetOffset,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      }
+                      Navigator.pop(context);
+
                     },
 
                   ),
 
-                  RadioListTile<WordStatus?>(
-
-                    title: const Text('未学习'),
-
-                    value: WordStatus.defaultState,
-
-                    groupValue: provider.filterStatus,
-
-                    onChanged: (WordStatus? value) {
-
-                      if (value != null) {
-
-                        provider.applyFilter(value);
-
-                        Navigator.pop(context);
-
-                      }
-
-                    },
-
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('未学习'),
+
+                    value: WordStatus.defaultState,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) async {
+
+                      if (value != null) {
+
+                        // 在应用筛选前保存当前中心单词
+                        WordItem? currentWord;
+                        if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                          currentWord = provider.filteredWordList[_centerWordIndex!];
+                        }
+
+                        provider.applyFilter(value);
+
+                        // 等待UI更新后，找到之前的单词在新列表中的位置
+                        await Future.delayed(Duration.zero);
+                        if (currentWord != null && mounted) {
+                          int newCenterIndex = provider.filteredWordList.indexOf(currentWord);
+                          if (newCenterIndex != -1) {
+                            // 更新UI的中心索引
+                            setState(() {
+                              _centerWordIndex = newCenterIndex;
+                            });
+
+                            // 滚动到新位置
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          } else if (provider.filteredWordList.isNotEmpty) {
+                            // 如果当前单词不在筛选结果中，滚动到最近的单词
+                            int originalIndex = provider.originalCenterWordIndex;
+                            int closestIndex = _findClosestWordIndexInFilteredList(provider.wordList, provider.filteredWordList, originalIndex);
+                            setState(() {
+                              _centerWordIndex = closestIndex;
+                            });
+
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(closestIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          }
+                        }
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
                   ),
 
-                  RadioListTile<WordStatus?>(
-
-                    title: const Text('简单'),
-
-                    value: WordStatus.easy,
-
-                    groupValue: provider.filterStatus,
-
-                    onChanged: (WordStatus? value) {
-
-                      if (value != null) {
-
-                        provider.applyFilter(value);
-
-                        Navigator.pop(context);
-
-                      }
-
-                    },
-
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('简单'),
+
+                    value: WordStatus.easy,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) async {
+
+                      if (value != null) {
+
+                        // 在应用筛选前保存当前中心单词
+                        WordItem? currentWord;
+                        if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                          currentWord = provider.filteredWordList[_centerWordIndex!];
+                        }
+
+                        provider.applyFilter(value);
+
+                        // 等待UI更新后，找到之前的单词在新列表中的位置
+                        await Future.delayed(Duration.zero);
+                        if (currentWord != null && mounted) {
+                          int newCenterIndex = provider.filteredWordList.indexOf(currentWord);
+                          if (newCenterIndex != -1) {
+                            // 更新UI的中心索引
+                            setState(() {
+                              _centerWordIndex = newCenterIndex;
+                            });
+
+                            // 滚动到新位置
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          } else if (provider.filteredWordList.isNotEmpty) {
+                            // 如果当前单词不在筛选结果中，滚动到最近的单词
+                            int originalIndex = provider.originalCenterWordIndex;
+                            int closestIndex = _findClosestWordIndexInFilteredList(provider.wordList, provider.filteredWordList, originalIndex);
+                            setState(() {
+                              _centerWordIndex = closestIndex;
+                            });
+
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(closestIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          }
+                        }
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
                   ),
 
-                  RadioListTile<WordStatus?>(
-
-                    title: const Text('犹豫'),
-
-                    value: WordStatus.hesitant,
-
-                    groupValue: provider.filterStatus,
-
-                    onChanged: (WordStatus? value) {
-
-                      if (value != null) {
-
-                        provider.applyFilter(value);
-
-                        Navigator.pop(context);
-
-                      }
-
-                    },
-
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('犹豫'),
+
+                    value: WordStatus.hesitant,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) async {
+
+                      if (value != null) {
+
+                        // 在应用筛选前保存当前中心单词
+                        WordItem? currentWord;
+                        if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                          currentWord = provider.filteredWordList[_centerWordIndex!];
+                        }
+
+                        provider.applyFilter(value);
+
+                        // 等待UI更新后，找到之前的单词在新列表中的位置
+                        await Future.delayed(Duration.zero);
+                        if (currentWord != null && mounted) {
+                          int newCenterIndex = provider.filteredWordList.indexOf(currentWord);
+                          if (newCenterIndex != -1) {
+                            // 更新UI的中心索引
+                            setState(() {
+                              _centerWordIndex = newCenterIndex;
+                            });
+
+                            // 滚动到新位置
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          } else if (provider.filteredWordList.isNotEmpty) {
+                            // 如果当前单词不在筛选结果中，滚动到最近的单词
+                            int originalIndex = provider.originalCenterWordIndex;
+                            int closestIndex = _findClosestWordIndexInFilteredList(provider.wordList, provider.filteredWordList, originalIndex);
+                            setState(() {
+                              _centerWordIndex = closestIndex;
+                            });
+
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(closestIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          }
+                        }
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
                   ),
 
-                  RadioListTile<WordStatus?>(
-
-                    title: const Text('困难'),
-
-                    value: WordStatus.difficult,
-
-                    groupValue: provider.filterStatus,
-
-                    onChanged: (WordStatus? value) {
-
-                      if (value != null) {
-
-                        provider.applyFilter(value);
-
-                        Navigator.pop(context);
-
-                      }
-
-                    },
-
+                  RadioListTile<WordStatus?>(
+
+                    title: const Text('困难'),
+
+                    value: WordStatus.difficult,
+
+                    groupValue: provider.filterStatus,
+
+                    onChanged: (WordStatus? value) async {
+
+                      if (value != null) {
+
+                        // 在应用筛选前保存当前中心单词
+                        WordItem? currentWord;
+                        if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                          currentWord = provider.filteredWordList[_centerWordIndex!];
+                        }
+
+                        provider.applyFilter(value);
+
+                        // 等待UI更新后，找到之前的单词在新列表中的位置
+                        await Future.delayed(Duration.zero);
+                        if (currentWord != null && mounted) {
+                          int newCenterIndex = provider.filteredWordList.indexOf(currentWord);
+                          if (newCenterIndex != -1) {
+                            // 更新UI的中心索引
+                            setState(() {
+                              _centerWordIndex = newCenterIndex;
+                            });
+
+                            // 滚动到新位置
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          } else if (provider.filteredWordList.isNotEmpty) {
+                            // 如果当前单词不在筛选结果中，滚动到最近的单词
+                            int originalIndex = provider.originalCenterWordIndex;
+                            int closestIndex = _findClosestWordIndexInFilteredList(provider.wordList, provider.filteredWordList, originalIndex);
+                            setState(() {
+                              _centerWordIndex = closestIndex;
+                            });
+
+                            if (_scrollController.hasClients) {
+                              final viewportHeight = MediaQuery.of(context).size.height;
+                              final targetOffset = _calculateTargetOffset(closestIndex, viewportHeight);
+                              _scrollController.animateTo(
+                                targetOffset,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          }
+                        }
+                        Navigator.pop(context);
+
+                      }
+
+                    },
+
                   ),
 
                   const SizedBox(height: 16),
 
-                  ElevatedButton(
-
-                    onPressed: () {
-
-                      provider.clearFilter();
-
-                      Navigator.pop(context);
-
+                  ElevatedButton(
+
+                    onPressed: () async {
+
+                      // 在应用筛选前保存当前中心单词
+                      WordItem? currentWord;
+                      if (_centerWordIndex != null && _centerWordIndex! < provider.filteredWordList.length) {
+                        currentWord = provider.filteredWordList[_centerWordIndex!];
+                      }
+
+                      provider.clearFilter();
+
+                      // 等待UI更新后，找到之前的单词在新列表中的位置
+                      await Future.delayed(Duration.zero);
+                      if (currentWord != null && mounted) {
+                        int newCenterIndex = provider.wordList.indexOf(currentWord);
+                        if (newCenterIndex != -1) {
+                          // 更新UI的中心索引
+                          setState(() {
+                            _centerWordIndex = newCenterIndex;
+                          });
+
+                          // 滚动到新位置
+                          if (_scrollController.hasClients) {
+                            final viewportHeight = MediaQuery.of(context).size.height;
+                            final targetOffset = _calculateTargetOffset(newCenterIndex, viewportHeight);
+                            _scrollController.animateTo(
+                              targetOffset,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      }
+                      Navigator.pop(context);
+
                     },
 
                     style: ElevatedButton.styleFrom(

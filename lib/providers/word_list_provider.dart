@@ -11,21 +11,14 @@ class _PrefsKeys {
 }
 
 class WordListProvider with ChangeNotifier {
-
   final ExcelService _excelService = ExcelService();
-
   List<WordItem> _wordList = [];
-
   List<WordItem> _filteredWordList = [];
-
   int _scrollPosition = 0;
-
-  int _centerWordIndex = 0;
-
+  int _originalCenterWordIndex = 0;  // 原始列表中的中心单词索引（绝对位置）
+  int _filteredCenterWordIndex = 0;  // 过滤列表中的中心单词索引
   bool _isLoading = false;
-
   String? _error;
-
   WordStatus? _filterStatus; // 筛选状态
 
 
@@ -36,7 +29,9 @@ class WordListProvider with ChangeNotifier {
 
   int get scrollPosition => _scrollPosition;
 
-  int get centerWordIndex => _centerWordIndex;
+  int get centerWordIndex => _filterStatus == null ? _originalCenterWordIndex : _filteredCenterWordIndex;
+
+  int get originalCenterWordIndex => _originalCenterWordIndex; // 绝对位置索引
 
   bool get isLoading => _isLoading;
 
@@ -64,13 +59,10 @@ class WordListProvider with ChangeNotifier {
   }
 
   Future<void> _restoreAllData() async {
-
     await _restoreWordStates();
-
     _scrollPosition = await _restoreFromPrefs(_PrefsKeys.scrollPosition, 0);
-
-    _centerWordIndex = await _restoreFromPrefs(_PrefsKeys.centerWordIndex, 0);
-
+    _originalCenterWordIndex = await _restoreFromPrefs(_PrefsKeys.centerWordIndex, 0);
+    _filteredCenterWordIndex = _originalCenterWordIndex; // 默认与原始索引相同
   }
 
   void updateWordStatus(int index, WordStatus status) {
@@ -165,53 +157,31 @@ class WordListProvider with ChangeNotifier {
   }
 
   void updateCenterWordIndex(int index) {
-
-    // 如果有筛选，需要将过滤列表中的索引转换为原始列表中的索引
-
-    int actualIndex;
-
-    if (_filterStatus != null && index >= 0 && index < _filteredWordList.length) {
-
-      // 在过滤列表中找到对应原始列表的索引
-
-      WordItem word = _filteredWordList[index];
-
-      actualIndex = _wordList.indexOf(word);
-
+    if (_filterStatus != null) {
+      // 在筛选模式下，更新过滤列表的中心索引
+      _filteredCenterWordIndex = index.clamp(0, _filteredWordList.length - 1);
+      
+      // 同时更新原始列表的中心索引（绝对位置）
+      if (index >= 0 && index < _filteredWordList.length) {
+        WordItem word = _filteredWordList[index];
+        int originalIndex = _wordList.indexOf(word);
+        if (originalIndex != -1) {
+          _originalCenterWordIndex = originalIndex;
+        }
+      }
     } else {
-
-      actualIndex = index.clamp(0, _wordList.length - 1);
-
+      // 在非筛选模式下，直接更新原始列表的中心索引
+      _originalCenterWordIndex = index.clamp(0, _wordList.length - 1);
+      _filteredCenterWordIndex = _originalCenterWordIndex;
     }
 
-
-
-    if (actualIndex >= 0 && actualIndex < _wordList.length) {
-
-      _centerWordIndex = actualIndex;
-
-      _saveToPrefs(_PrefsKeys.centerWordIndex, _centerWordIndex);
-
-    }
-
+    // 保存原始中心索引到本地存储（作为绝对位置）
+    _saveToPrefs(_PrefsKeys.centerWordIndex, _originalCenterWordIndex);
   }
 
   int getSavedCenterIndex() {
-
-    if (_filterStatus != null && _centerWordIndex >= 0 && _centerWordIndex < _wordList.length) {
-
-      // 如果有筛选，查找原始索引在过滤列表中的位置
-
-      WordItem centerWord = _wordList[_centerWordIndex];
-
-      int filteredIndex = _filteredWordList.indexOf(centerWord);
-
-      return filteredIndex >= 0 ? filteredIndex : 0;
-
-    }
-
-    return _centerWordIndex;
-
+    // 总是返回原始列表中的索引，确保绝对位置
+    return _originalCenterWordIndex;
   }
 
   Future<void> clearAllData() async {
@@ -224,7 +194,7 @@ class WordListProvider with ChangeNotifier {
       }
       
       _scrollPosition = 0;
-      _centerWordIndex = 0;
+      _originalCenterWordIndex = 0;
       notifyListeners();
     } catch (e) {
       debugPrint('清除数据失败: $e');
@@ -255,22 +225,43 @@ class WordListProvider with ChangeNotifier {
 
 
 
-  void applyFilter(WordStatus? status) {
-
-    _filterStatus = status;
-
-    if (status == null) {
-
-      _filteredWordList = _wordList;
-
-    } else {
-
-      _filteredWordList = _wordList.where((word) => word.status == status).toList();
-
-    }
-
-    notifyListeners();
-
+  void applyFilter(WordStatus? status) {
+
+    // 保存当前的中心单词（在应用筛选之前）
+    WordItem? currentCenterWord;
+    if (_originalCenterWordIndex >= 0 && _originalCenterWordIndex < _wordList.length) {
+      currentCenterWord = _wordList[_originalCenterWordIndex];
+    }
+
+    _filterStatus = status;
+
+    if (status == null) {
+
+      _filteredWordList = _wordList;
+
+    } else {
+
+      _filteredWordList = _wordList.where((word) => word.status == status).toList();
+
+    }
+    
+    // 应用筛选后，找到当前单词在新列表中的位置
+    if (currentCenterWord != null) {
+      int newFilteredIndex = _filteredWordList.indexOf(currentCenterWord);
+      if (newFilteredIndex != -1) {
+        // 如果当前单词在筛选结果中，使用新索引
+        _filteredCenterWordIndex = newFilteredIndex;
+      } else {
+        // 如果当前单词不在筛选结果中，设置为第一个单词
+        _filteredCenterWordIndex = 0;
+      }
+    } else {
+      // 如果没有当前中心单词，设置为第一个单词
+      _filteredCenterWordIndex = 0;
+    }
+
+    notifyListeners();
+
   }
 
 
