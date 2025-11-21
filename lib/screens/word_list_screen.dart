@@ -81,18 +81,19 @@ class _WordListScreenState extends State<WordListScreen> {
     });
   }
 
-  double _calculateTargetOffset(int index, double viewportHeight) {
-
-    // 这里需要根据是否应用了筛选来计算偏移量
-
-    // 但在滚动到特定位置时，我们仍然使用原始列表的索引
-
-    final centerOffset = index * _Constants.itemHeight;
-
-    final targetOffset = centerOffset - (viewportHeight / 2) + (_Constants.itemHeight / 2);
-
-    return targetOffset.clamp(0.0, double.infinity);
-
+  double _calculateTargetOffset(int index, double viewportHeight) {
+
+    // 计算每边需要添加的空白项数量（屏幕高度能容纳的单词数量除以2）
+    final itemsPerScreen = (viewportHeight / _Constants.itemHeight).round();
+    final paddingItems = (itemsPerScreen / 2).ceil();
+    
+    // 调整目标偏移量以考虑前导空白项
+    final centerOffset = (index + paddingItems) * _Constants.itemHeight;
+
+    final targetOffset = centerOffset - (viewportHeight / 2) + (_Constants.itemHeight / 2);
+
+    return targetOffset.clamp(0.0, double.infinity);
+
   }
 
   @override
