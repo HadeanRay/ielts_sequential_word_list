@@ -845,10 +845,61 @@ class _WordListScreenState extends State<WordListScreen> {
 
                     },
 
-                  ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ListTile(
+
+                    title: const Text('回到今天首次打开的位置'),
+
+                    leading: const Icon(Icons.today, color: Colors.blue),
+
+                    onTap: () async {
 
-                  const SizedBox(height: 16),
+                      // 调用Provider中的方法回到今天首次打开的位置
+                      await provider.goToTodayFirstOpenIndex();
+
+                      // 找到今天首次打开的单词在当前显示列表中的位置
+                      int targetIndex = provider.todayFirstOpenIndex;
+                      if (provider.hasFilterApplied()) {
+                        // 如果有筛选，需要找到在筛选列表中的位置
+                        if (targetIndex >= 0 && targetIndex < provider.wordList.length) {
+                          WordItem targetWord = provider.wordList[targetIndex];
+                          int filteredIndex = provider.filteredWordList.indexOf(targetWord);
+                          if (filteredIndex != -1) {
+                            targetIndex = filteredIndex;
+                          } else {
+                            // 如果目标单词不在筛选结果中，滚动到第一个单词
+                            targetIndex = 0;
+                          }
+                        }
+                      }
+
+                      // 更新UI的中心索引
+                      setState(() {
+                        _centerWordIndex = targetIndex;
+                      });
+
+                      // 滚动到目标位置
+                      if (_scrollController.hasClients) {
+                        final viewportHeight = MediaQuery.of(context).size.height;
+                        final targetOffset = _calculateTargetOffset(targetIndex, viewportHeight);
+                        _scrollController.animateTo(
+                          targetOffset,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+
+                      Navigator.pop(context);
 
+                    },
+
+                  ),
+
+                  const SizedBox(height: 16),
+
                   ElevatedButton(
 
                     onPressed: () async {

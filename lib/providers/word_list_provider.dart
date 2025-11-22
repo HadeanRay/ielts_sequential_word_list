@@ -4,22 +4,25 @@ import '../models/word_item.dart';
 import '../models/word_status.dart';
 import '../services/excel_service.dart';
 
-class _PrefsKeys {
-  static const String wordState = 'word_';
-  static const String scrollPosition = 'scroll_position';
-  static const String centerWordIndex = 'center_word_index';
+class _PrefsKeys {
+  static const String wordState = 'word_';
+  static const String scrollPosition = 'scroll_position';
+  static const String centerWordIndex = 'center_word_index';
+  static const String todayFirstOpenIndex = 'today_first_open_index';
+  static const String todayFirstOpenDate = 'today_first_open_date';
 }
 
 class WordListProvider with ChangeNotifier {
   final ExcelService _excelService = ExcelService();
-  List<WordItem> _wordList = [];
-  List<WordItem> _filteredWordList = [];
-  int _scrollPosition = 0;
-  int _originalCenterWordIndex = 0;  // 原始列表中的中心单词索引（绝对位置）
-  int _filteredCenterWordIndex = 0;  // 过滤列表中的中心单词索引
-  bool _isLoading = false;
-  String? _error;
-  WordStatus? _filterStatus; // 筛选状态
+  List<WordItem> _wordList = [];
+  List<WordItem> _filteredWordList = [];
+  int _scrollPosition = 0;
+  int _originalCenterWordIndex = 0;  // 原始列表中的中心单词索引（绝对位置）
+  int _filteredCenterWordIndex = 0;  // 过滤列表中的中心单词索引
+  int _todayFirstOpenIndex = 0;     // 今天首次打开应用时的单词索引
+  bool _isLoading = false;
+  String? _error;
+  WordStatus? _filterStatus; // 筛选状态
   List<WordStatus>? _combinedFilterStatuses; // 组合筛选状态
 
 
@@ -41,18 +44,20 @@ class WordListProvider with ChangeNotifier {
 
   int get scrollPosition => _scrollPosition;
 
-  int get centerWordIndex => _filterStatus == null ? _originalCenterWordIndex : _filteredCenterWordIndex;
-
-  int get originalCenterWordIndex => _originalCenterWordIndex; // 绝对位置索引
-
-  bool get isLoading => _isLoading;
-
-  String? get error => _error;
-
-  int get wordCount => _wordList.length;
-
-  WordStatus? get filterStatus => _filterStatus;
-  
+  int get centerWordIndex => _filterStatus == null ? _originalCenterWordIndex : _filteredCenterWordIndex;
+
+  int get originalCenterWordIndex => _originalCenterWordIndex; // 绝对位置索引
+
+  int get todayFirstOpenIndex => _todayFirstOpenIndex; // 今天首次打开应用的单词索引
+
+  bool get isLoading => _isLoading;
+
+  String? get error => _error;
+
+  int get wordCount => _wordList.length;
+
+  WordStatus? get filterStatus => _filterStatus;
+  
   List<WordStatus>? get combinedFilterStatuses => _combinedFilterStatuses;
 
   Future<void> loadWordList() async {
@@ -72,11 +77,14 @@ class WordListProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _restoreAllData() async {
-    await _restoreWordStates();
-    _scrollPosition = await _restoreFromPrefs(_PrefsKeys.scrollPosition, 0);
-    _originalCenterWordIndex = await _restoreFromPrefs(_PrefsKeys.centerWordIndex, 0);
-    _filteredCenterWordIndex = _originalCenterWordIndex; // 默认与原始索引相同
+  Future<void> _restoreAllData() async {
+    await _restoreWordStates();
+    _scrollPosition = await _restoreFromPrefs(_PrefsKeys.scrollPosition, 0);
+    _originalCenterWordIndex = await _restoreFromPrefs(_PrefsKeys.centerWordIndex, 0);
+    _filteredCenterWordIndex = _originalCenterWordIndex; // 默认与原始索引相同
+    
+    // 检查是否是今天第一次打开应用
+    await _checkTodayFirstOpen();
   }
 
   void updateWordStatus(int index, WordStatus status) {
@@ -158,16 +166,73 @@ class WordListProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _restoreWordStates() async {
-    final prefs = await SharedPreferences.getInstance();
-    for (int i = 0; i < _wordList.length; i++) {
-      final savedStatus = prefs.getString('${_PrefsKeys.wordState}$i');
-      if (savedStatus != null) {
-        _wordList[i] = _wordList[i].copyWith(
-          status: WordStatusExtension.fromString(savedStatus),
-        );
-      }
-    }
+  Future<void> _restoreWordStates() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (int i = 0; i < _wordList.length; i++) {
+      final savedStatus = prefs.getString('${_PrefsKeys.wordState}$i');
+      if (savedStatus != null) {
+        _wordList[i] = _wordList[i].copyWith(
+          status: WordStatusExtension.fromString(savedStatus),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkTodayFirstOpen() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().split('T')[0]; // 获取今天的日期字符串 (YYYY-MM-DD)
+    final lastOpenDate = prefs.getString(_PrefsKeys.todayFirstOpenDate);
+
+    // 如果今天还没有记录首次打开，则记录当前中心索引
+    if (lastOpenDate != today) {
+      // 记录今天首次打开的索引
+      _todayFirstOpenIndex = _originalCenterWordIndex;
+      await prefs.setString(_PrefsKeys.todayFirstOpenDate, today);
+      await prefs.setInt(_PrefsKeys.todayFirstOpenIndex, _todayFirstOpenIndex);
+    } else {
+      // 如果今天已经记录过，则恢复记录的索引
+      _todayFirstOpenIndex = prefs.getInt(_PrefsKeys.todayFirstOpenIndex) ?? _originalCenterWordIndex;
+    }
+  }
+
+  Future<void> goToTodayFirstOpenIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().split('T')[0]; // 获取今天的日期字符串 (YYYY-MM-DD)
+    final lastOpenDate = prefs.getString(_PrefsKeys.todayFirstOpenDate);
+    final storedIndex = prefs.getInt(_PrefsKeys.todayFirstOpenIndex) ?? 0;
+
+    // 检查是否是今天首次打开
+    if (lastOpenDate == today && storedIndex >= 0 && storedIndex < _wordList.length) {
+      _todayFirstOpenIndex = storedIndex;
+
+      // 根据是否有筛选来更新适当的索引
+      if (_filterStatus != null) {
+        // 在筛选模式下，找到这个单词在筛选列表中的位置
+        WordItem targetWord = _wordList[_todayFirstOpenIndex];
+        int newFilteredIndex = _filteredWordList.indexOf(targetWord);
+        if (newFilteredIndex != -1) {
+          _filteredCenterWordIndex = newFilteredIndex;
+        } else {
+          // 如果目标单词不在筛选结果中，设置为第一个单词
+          _filteredCenterWordIndex = 0;
+        }
+      } else {
+        _originalCenterWordIndex = _todayFirstOpenIndex;
+        _filteredCenterWordIndex = _originalCenterWordIndex;
+      }
+
+      notifyListeners();
+    }
+  }
+
+  Future<void> resetTodayFirstOpenIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().split('T')[0]; // 获取今天的日期字符串 (YYYY-MM-DD)
+    
+    // 重置今天首次打开的索引为当前中心索引
+    _todayFirstOpenIndex = _originalCenterWordIndex;
+    await prefs.setString(_PrefsKeys.todayFirstOpenDate, today);
+    await prefs.setInt(_PrefsKeys.todayFirstOpenIndex, _todayFirstOpenIndex);
   }
 
   void updateCenterWordIndex(int index) {
