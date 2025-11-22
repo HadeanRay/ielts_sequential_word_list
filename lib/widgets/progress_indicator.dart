@@ -52,7 +52,7 @@ class ProgressIndicatorWidget extends StatelessWidget {
     }
 
     return Positioned(
-      top: 20,
+      top: 40,
       right: 20,
       child: Container(
         padding: const EdgeInsets.all(12.0),
