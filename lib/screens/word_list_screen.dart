@@ -1,11 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/word_item.dart';
-import '../models/word_status.dart';
-import '../providers/word_list_provider.dart';
-import '../widgets/letter_navigation_bar.dart';
-import '../widgets/picker_scroll_view.dart';
-import '../widgets/status_action_buttons.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/word_item.dart';
+import '../models/word_status.dart';
+import '../providers/word_list_provider.dart';
+import '../widgets/letter_navigation_bar.dart';
+import '../widgets/picker_scroll_view.dart';
+import '../widgets/progress_indicator.dart';
+import '../widgets/status_action_buttons.dart';
 import '../widgets/word_list_item.dart';
 
 class _Constants {
@@ -286,23 +287,29 @@ class _WordListScreenState extends State<WordListScreen> {
 
             ),
           ],
-        ),
-
-        // 底部状态按钮
-
-        StatusActionButtons(
-
-          onEasyPressed: () => _handleStatusChange(WordStatus.easy),
-
-          onHesitantPressed: () => _handleStatusChange(WordStatus.hesitant),
-
-          onDifficultPressed: () => _handleStatusChange(WordStatus.difficult),
-
-          onFilterPressed: () => _showFilterMenu(),
-
-        ),
-      ],
-    );
+        ),
+
+        // 右上角进度指示器
+        ProgressIndicatorWidget(
+          provider: provider,
+          centerWordIndex: _centerWordIndex,
+        ),
+
+        // 底部状态按钮
+
+        StatusActionButtons(
+
+          onEasyPressed: () => _handleStatusChange(WordStatus.easy),
+
+          onHesitantPressed: () => _handleStatusChange(WordStatus.hesitant),
+
+          onDifficultPressed: () => _handleStatusChange(WordStatus.difficult),
+
+          onFilterPressed: () => _showFilterMenu(),
+
+        ),
+      ],
+    );
   }
 
   Widget _buildWordItem(WordItem word, bool isCenter, bool showChinese) {
