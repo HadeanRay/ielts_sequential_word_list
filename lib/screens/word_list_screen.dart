@@ -715,9 +715,9 @@ class _WordListScreenState extends State<WordListScreen> {
 
                   RadioListTile<WordStatus?>(
 
-                    title: const Text('犹豫'),
+                    title: const Text('犹豫+困难'),
 
-                    value: WordStatus.hesitant,
+                    value: WordStatus.hesitant, // 保持WordStatus.hesitant作为标识，但实际执行组合筛选
 
                     groupValue: provider.filterStatus,
 
@@ -731,7 +731,8 @@ class _WordListScreenState extends State<WordListScreen> {
                           currentWord = provider.filteredWordList[_centerWordIndex!];
                         }
 
-                        provider.applyFilter(value);
+                        // 应用组合筛选：犹豫+困难
+                        provider.applyCombinedFilter([WordStatus.hesitant, WordStatus.difficult]);
 
                         // 等待UI更新后，找到之前的单词在新列表中的位置
                         await Future.delayed(Duration.zero);
