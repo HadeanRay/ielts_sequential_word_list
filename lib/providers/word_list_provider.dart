@@ -20,12 +20,24 @@ class WordListProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   WordStatus? _filterStatus; // 筛选状态
+  List<WordStatus>? _combinedFilterStatuses; // 组合筛选状态
 
 
 
   List<WordItem> get wordList => _wordList;
 
-  List<WordItem> get filteredWordList => _filterStatus == null ? _wordList : _filteredWordList;
+  List<WordItem> get filteredWordList {
+    if (_filterStatus != null) {
+      // 普通筛选
+      return _filteredWordList;
+    } else if (_combinedFilterStatuses != null) {
+      // 组合筛选
+      return _wordList.where((word) => _combinedFilterStatuses!.contains(word.status)).toList();
+    } else {
+      // 没有筛选
+      return _wordList;
+    }
+  }
 
   int get scrollPosition => _scrollPosition;
 
@@ -40,6 +52,8 @@ class WordListProvider with ChangeNotifier {
   int get wordCount => _wordList.length;
 
   WordStatus? get filterStatus => _filterStatus;
+  
+  List<WordStatus>? get combinedFilterStatuses => _combinedFilterStatuses;
 
   Future<void> loadWordList() async {
     _isLoading = true;
@@ -269,6 +283,7 @@ class WordListProvider with ChangeNotifier {
   void clearFilter() {
 
     _filterStatus = null;
+    _combinedFilterStatuses = null;
 
     _filteredWordList = _wordList;
 
@@ -280,7 +295,47 @@ class WordListProvider with ChangeNotifier {
 
   bool hasFilterApplied() {
 
-    return _filterStatus != null;
+    return _filterStatus != null || _combinedFilterStatuses != null;
+
+  }
+
+  void applyCombinedFilter(List<WordStatus> statuses) {
+
+    // 保存当前的中心单词（在应用筛选之前）
+    WordItem? currentCenterWord;
+    if (_originalCenterWordIndex >= 0 && _originalCenterWordIndex < _wordList.length) {
+      currentCenterWord = _wordList[_originalCenterWordIndex];
+    }
+
+    _filterStatus = null;  // 清除普通筛选状态
+    _combinedFilterStatuses = statuses.isEmpty ? null : statuses;  // 设置组合筛选状态
+
+    if (statuses.isEmpty) {
+
+      _filteredWordList = _wordList;
+
+    } else {
+
+      _filteredWordList = _wordList.where((word) => statuses.contains(word.status)).toList();
+
+    }
+    
+    // 应用筛选后，找到当前单词在新列表中的位置
+    if (currentCenterWord != null) {
+      int newFilteredIndex = _filteredWordList.indexOf(currentCenterWord);
+      if (newFilteredIndex != -1) {
+        // 如果当前单词在筛选结果中，使用新索引
+        _filteredCenterWordIndex = newFilteredIndex;
+      } else {
+        // 如果当前单词不在筛选结果中，设置为第一个单词
+        _filteredCenterWordIndex = 0;
+      }
+    } else {
+      // 如果没有当前中心单词，设置为第一个单词
+      _filteredCenterWordIndex = 0;
+    }
+
+    notifyListeners();
 
   }
 
