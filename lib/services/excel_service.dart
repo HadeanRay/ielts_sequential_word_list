@@ -45,21 +45,10 @@ class ExcelService {
           String chinese = '';
           
           // 根据文件类型解析不同格式
-          if (csvPath.contains('ielts-main')) {
-            // ielts-main.csv 格式: english,词性中文释义,空字段...
-            // 找到第一个非空的释义字段
-            for (int j = 1; j < parts.length; j++) {
-              final part = parts[j].trim();
-              if (part.isNotEmpty && !part.startsWith('n.') && !part.startsWith('v.') && 
-                  !part.startsWith('adj.') && !part.startsWith('adv.') && !part.startsWith('a.') &&
-                  !part.startsWith('prep.') && !part.startsWith('conj.') && !part.startsWith('interj.') &&
-                  !part.startsWith('pron.') && !part.startsWith('num.') && !part.startsWith('vi.') &&
-                  !part.startsWith('vt.') && !part.startsWith('vs.') && !part.startsWith('n. ') &&
-                  !part.contains('(') && part != ',,,' && part != ',') {
-                chinese = part;
-                break;
-              }
-            }
+          if (csvPath.contains('ielts-main')) {
+            // ielts-main.csv 格式: english,词性中文释义
+            // 词性标识通常在释义的开头，如 "vt. 抛弃;放弃"，我们需要保留这些释义
+            chinese = parts.sublist(1).join(',').trim(); // 将所有剩余部分连接起来作为释义
           } else {
             // ielts.csv 格式: english,中文释义1,中文释义2
             chinese = parts.sublist(1).join(',').trim();
