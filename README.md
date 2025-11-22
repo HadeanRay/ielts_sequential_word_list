@@ -1,3 +1,13 @@
-# ielts_sequential_word_list
+# 雅思顺序单词表
 
-A new Flutter project.
+简单、纯粹的顺序单词表
+
+## 使用方法
+
+绿色 - 简单
+黄色 - 犹豫
+红色 - 困难
+
+就这么简单！
+
+![alt text](image.png)
