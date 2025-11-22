@@ -1,7 +1,7 @@
 name: ielts_sequential_word_list
-description: "A new Flutter project for IELTS sequential word list learning."
+description: "雅思顺序单词表 - 顺序学习雅思核心词汇的应用"
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.9.2

@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => WordListProvider(),
       child: MaterialApp(
-        title: 'IELTS 顺序词表',
+        title: '雅思顺序单词表',
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
